@@ -1,0 +1,50 @@
+name: Build Android APK
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev tk-dev libgdbm-compat-dev libreoffice-dev libmpdec-dev bluez libbluetooth-dev
+
+      - name: Install Buildozer and Cython
+        run: |
+          pip3 install --user --upgrade pip
+          pip3 install --user buildozer cython Kivy
+
+      - name: Create buildozer.spec
+        run: |
+          echo '[app]' > buildozer.spec
+          echo 'title = GrafikProverki' >> buildozer.spec
+          echo 'package.name = grafikapp' >> buildozer.spec
+          echo 'package.domain = org.twoman' >> buildozer.spec
+          echo 'source.dir = .' >> buildozer.spec
+          echo 'source.include_exts = py,png,jpg,kv,atlas' >> buildozer.spec
+          echo 'version = 0.1' >> buildozer.spec
+          echo 'requirements = python3, kivy==master, https://github.com/kivymd/KivyMD/archive/master.zip, plyer, pillow' >> buildozer.spec
+          echo 'orientation = portrait' >> buildozer.spec
+          echo 'fullscreen = 1' >> buildozer.spec
+          echo 'android.archs = arm64-v8a' >> buildozer.spec
+          echo 'android.api = 33' >> buildozer.spec
+          echo 'android.minapi = 24' >> buildozer.spec
+          echo 'android.permissions = VIBRATE, POST_NOTIFICATIONS' >> buildozer.spec
+          echo '[buildozer]' >> buildozer.spec
+          echo 'log_level = 2' >> buildozer.spec
+          echo 'warn_on_root = 1' >> buildozer.spec
+
+      - name: Build APK with Buildozer
+        run: |
+          export PATH=$PATH:~/.local/bin
+          yes | buildozer android debug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: bin/*.apk
