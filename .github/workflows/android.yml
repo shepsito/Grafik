@@ -8,10 +8,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Добавяме правилната Java 17, за да премине Gradle проверката успешно
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # Махаме openjdk-17-jdk от apt-get, защото вече я имаме горе
       - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev tk-dev libgdbm-compat-dev libreoffice-dev libmpdec-dev bluez libbluetooth-dev
+          sudo apt-get install -y git zip unzip python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev tk-dev libgdbm-compat-dev libreoffice-dev libmpdec-dev bluez libbluetooth-dev
 
       - name: Install Buildozer and Cython
         run: |
