@@ -8,17 +8,6 @@ from kivy.clock import Clock
 from kivy.graphics import Color, Rectangle
 from kivy.utils import platform
 
-# --- Директна връзка с Android API (Java) за 100% работещ звук и известия ---
-if platform == 'android':
-    from jnius import autoclass
-    PythonActivity = autoclass('org.kivy.android.PythonActivity')
-    Context = autoclass('android.content.Context')
-    NotificationManager = autoclass('android.app.NotificationManager')
-    NotificationChannel = autoclass('android.app.NotificationChannel')
-    NotificationCompat = autoclass('androidx.core.app.NotificationCompat$Builder')
-    # За звука и вибрацията
-    RingtoneManager = autoclass('android.media.RingtoneManager')
-
 # --- Помощни логически функции за седмици и тримесечия ---
 
 def get_monday_week_number(date):
@@ -104,7 +93,7 @@ def generate_yearly_schedule(year):
         if is_last_friday_of_quarter(current):
             events.append((current, "🚨 Квартална Проверка АВР (Петък)", "МЗ,ХВО и ЦПС-1", "Проверка АВР сборки на 0,4кВ с/без сборки захр.от 3,4,23,24БН,33БН I-III,43БН I-III /", shift))
         if current_day == 8:
-            events.append((current, "🚨 Секции 0,4кВ-ГК", "Секции 0,4кВ-ГК 1_4 блок", "Проверка АВР на -ШУ и изправността на сигнализацията на панел 'С'БЩУ за повикване в КРу", shift))
+            events.append((current, "🚨 Секции 0,4кВ-ГК", "Секции 0,4кВ-ГК 1_4 block", "Проверка АВР на -ШУ и изправността на сигнализацията на панел 'С'БЩУ за повикване в КРу", shift))
         if current_day == 18:
             events.append((current, "🚨 Вентилни отводи", "Вентилни отводи 1 и 3 ТП", "Отчитане на -вентилни отводи", shift))
         if current_day == 1:
@@ -140,7 +129,7 @@ class NotificationApp(App):
         main_layout = BoxLayout(orientation="vertical", padding=15, spacing=15)
 
         # 1. Заглавие
-        title = Label(text="ГРАФИК ПРОВЕРКИ v5.0", font_size='22sp', bold=True, size_hint_y=0.08)
+        title = Label(text="ГРАФИК ПРОВЕРКИ v5.2", font_size='22sp', bold=True, size_hint_y=0.08)
         main_layout.add_widget(title)
 
         # 2. КАРЕ: МИНАЛО СЪБИТИЕ
@@ -203,56 +192,62 @@ class NotificationApp(App):
     def _update_rect1(self, instance, value): self.rect1.pos = instance.pos; self.rect1.size = instance.size
     def _update_rect2(self, instance, value): self.rect2.pos = instance.pos; self.rect2.size = instance.size
 
-    # Напълно нов, ОФИЦИАЛЕН Android Java код, поддържащ Android 10 перфектно
+    # 100% стабилен native метод без външни AndroidX зависимости
     def send_android_alert(self, title, message):
         if platform != 'android':
             print(f"PC Тест -> Заглавие: {title}, Текст: {message}")
             return
 
         try:
+            from jnius import autoclass
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
+            Context = autoclass('android.content.Context')
+            NotificationManager = autoclass('android.app.NotificationManager')
+            NotificationChannel = autoclass('android.app.NotificationChannel')
+            NotificationBuilder = autoclass('android.app.Notification$Builder')
+            RingtoneManager = autoclass('android.media.RingtoneManager')
+
             activity = PythonActivity.mActivity
             context = activity.getApplicationContext()
             notification_manager = activity.getSystemService(Context.NOTIFICATION_SERVICE)
 
-            channel_id = "grafik_alerts_id"
+            channel_id = "grafik_alerts_channel"
             channel_name = "График Известия"
 
-            # Форсираме създаването на сигурен канал за Android 10+
+            # Създаване на сигурен канал за Android 10
             importance = NotificationManager.IMPORTANCE_HIGH
             channel = NotificationChannel(channel_id, channel_name, importance)
-            channel.setDescription("Звукови аларми за работния график")
-            
-            # Активираме звук и светлина на системно ниво
+            channel.setDescription("Звукови аларми за график")
             channel.enableLights(True)
             channel.enableVibration(True)
             notification_manager.createNotificationChannel(channel)
 
-            # Взимаме системния дефолтен звук на телефона за съобщения
+            # Взимане на дефолтния звук на устройството
             default_sound_uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
-            # Построяваме известието по правилата на Android
-            builder = NotificationCompat(context, channel_id)
+            # Сглобяване на известието с чистия вграден Builder
+            builder = NotificationBuilder(context, channel_id)
             builder.setContentTitle(title)
             builder.setContentText(message)
-            # Използваме вградената икона на Kivy за известия
             builder.setSmallIcon(context.getApplicationInfo().icon)
-            builder.setPriority(NotificationManager.IMPORTANCE_HIGH)
-            builder.setSound(default_sound_uri)
             builder.setAutoCancel(True)
+            
+            # Активиране на звука директно в обекта
+            builder.setSound(default_sound_uri)
 
-            # Изстрелваме известието
             notification_manager.notify(1, builder.build())
         except Exception as e:
-            print(f"Грешка при Java Android Известяване: {e}")
+            # Предотвратява затваряне на приложението при софтуерно изключение
+            self.status_label.text = f"Грешка известяване: {str(e)}"
 
     def send_test_notification(self, instance):
         self.update_events_display()
         now = datetime.now()
-        self.status_label.text = f"Изпратено твърдо известие в {now.strftime('%H:%M:%S')}"
+        self.status_label.text = f"Изпратено известие в {now.strftime('%H:%M:%S')}"
         
         self.send_android_alert(
             "🚨 ТЕСТ: Предстояща Проверка!",
-            "Системата на Android 10 работи със звук."
+            "Системата на Android 10 работи успешно."
         )
 
     def toggle_system(self, instance):
@@ -294,7 +289,7 @@ class NotificationApp(App):
             self.next_check.text = f"Проверка: {next_event[3]}"
             self.next_shift.text = f"Смяна: {next_event[4]}"
 
-            # АВТОМАТИЧНА АЛАРМА
+            # Автоматично известие за текущия ден
             if next_event[0].date() == now.date() and self.last_notified_date != now.date():
                 self.last_notified_date = now.date()
                 self.send_android_alert(
