@@ -14,10 +14,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      # ЕТО Я НОВАТА СТЪПКА: Официален Android SDK мениджър, който дава 'aidl' наготово
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Install System Dependencies
         run: |
           sudo apt-get update
@@ -40,7 +36,8 @@ jobs:
           echo 'source.dir = .' >> buildozer.spec
           echo 'source.include_exts = py,png,jpg,kv,atlas' >> buildozer.spec
           echo 'version = 1.0' >> buildozer.spec
-          echo 'requirements = python3, kivy' >> buildozer.spec
+          # ТУК Е РЕШЕНИЕТО: Заключваме твърдо към 3.12.0, за да избягаме от бъгавия Python 3.14
+          echo 'requirements = python3==3.12.0, hostpython3==3.12.0,激 kivy==2.3.0, pillow==10.2.0' >> buildozer.spec
           echo 'orientation = portrait' >> buildozer.spec
           echo 'fullscreen = 1' >> buildozer.spec
           echo 'android.archs = arm64-v8a' >> buildozer.spec
@@ -51,6 +48,7 @@ jobs:
 
       - name: Build APK with Buildozer
         run: |
+          export APP_ANDROID_ACCEPT_SDK_LICENSE="1"
           buildozer android debug
           
       - name: Upload APK Artifact
