@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import calendar
+import time
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
@@ -123,13 +124,21 @@ def generate_yearly_schedule(year):
 
 class NotificationApp(App):
     def build(self):
+        # Поискване на права за известия при Android 13+
+        if platform == 'android':
+            try:
+                from android.permissions import Permission, request_permissions
+                request_permissions([Permission.POST_NOTIFICATIONS])
+            except Exception as e:
+                print(f"Грешка при искане на права: {e}")
+
         self.yearly_events = generate_yearly_schedule(datetime.now().year)
         self.last_notified_date = None
 
         main_layout = BoxLayout(orientation="vertical", padding=15, spacing=15)
 
         # 1. Заглавие
-        title = Label(text="ГРАФИК ПРОВЕРКИ v5.2", font_size='22sp', bold=True, size_hint_y=0.08)
+        title = Label(text="ГРАФИК ПРОВЕРКИ v5.3", font_size='22sp', bold=True, size_hint_y=0.08)
         main_layout.add_widget(title)
 
         # 2. КАРЕ: МИНАЛО СЪБИТИЕ
@@ -192,7 +201,7 @@ class NotificationApp(App):
     def _update_rect1(self, instance, value): self.rect1.pos = instance.pos; self.rect1.size = instance.size
     def _update_rect2(self, instance, value): self.rect2.pos = instance.pos; self.rect2.size = instance.size
 
-    # 100% стабилен native метод без външни AndroidX зависимости
+    # Оптимизиран метод за стабилни известия със звук и вибрация на Android
     def send_android_alert(self, title, message):
         if platform != 'android':
             print(f"PC Тест -> Заглавие: {title}, Текст: {message}")
@@ -206,38 +215,53 @@ class NotificationApp(App):
             NotificationChannel = autoclass('android.app.NotificationChannel')
             NotificationBuilder = autoclass('android.app.Notification$Builder')
             RingtoneManager = autoclass('android.media.RingtoneManager')
+            AudioAttributesBuilder = autoclass('android.media.AudioAttributes$Builder')
 
             activity = PythonActivity.mActivity
             context = activity.getApplicationContext()
             notification_manager = activity.getSystemService(Context.NOTIFICATION_SERVICE)
 
-            channel_id = "grafik_alerts_channel"
+            # Нов канал (v2) с форсирани настройки за силен звук и приоритет
+            channel_id = "grafik_alerts_channel_v2"
             channel_name = "График Известия"
 
-            # Създаване на сигурен канал за Android 10
-            importance = NotificationManager.IMPORTANCE_HIGH
-            channel = NotificationChannel(channel_id, channel_name, importance)
-            channel.setDescription("Звукови аларми за график")
-            channel.enableLights(True)
-            channel.enableVibration(True)
-            notification_manager.createNotificationChannel(channel)
-
-            # Взимане на дефолтния звук на устройството
+            # Взимане на дефолтния системен звук
             default_sound_uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
-            # Сглобяване на известието с чистия вграден Builder
+            # Проверка дали каналът съществува, ако не - се създава със звук
+            channel = notification_manager.getNotificationChannel(channel_id)
+            if channel is None:
+                importance = NotificationManager.IMPORTANCE_HIGH  # Изскача на екрана + звук
+                channel = NotificationChannel(channel_id, channel_name, importance)
+                channel.setDescription("Звукови аларми за график")
+                channel.enableLights(True)
+                channel.enableVibration(True)
+                
+                # Задаване на аудио атрибути за канала (Задължително от Android 8 нагоре)
+                audio_attributes = AudioAttributesBuilder() \
+                    .setUsage(AudioAttributesBuilder.USAGE_NOTIFICATION) \
+                    .setContentType(AudioAttributesBuilder.CONTENT_TYPE_SONIFICATION) \
+                    .build()
+                
+                channel.setSound(default_sound_uri, audio_attributes)
+                notification_manager.createNotificationChannel(channel)
+
+            # Конструиране на известието
             builder = NotificationBuilder(context, channel_id)
             builder.setContentTitle(title)
             builder.setContentText(message)
             builder.setSmallIcon(context.getApplicationInfo().icon)
             builder.setAutoCancel(True)
             
-            # Активиране на звука директно в обекта
+            # Допълнителен подсигуряващ звук и приоритет за по-стари версии
             builder.setSound(default_sound_uri)
+            builder.setPriority(NotificationManager.IMPORTANCE_HIGH)
 
-            notification_manager.notify(1, builder.build())
+            # Уникално ID за всяка аларма (базирано на времето), за да звънят самостоятелно
+            notification_id = int(time.time()) % 100000
+
+            notification_manager.notify(notification_id, builder.build())
         except Exception as e:
-            # Предотвратява затваряне на приложението при софтуерно изключение
             self.status_label.text = f"Грешка известяване: {str(e)}"
 
     def send_test_notification(self, instance):
@@ -247,7 +271,7 @@ class NotificationApp(App):
         
         self.send_android_alert(
             "🚨 ТЕСТ: Предстояща Проверка!",
-            "Системата на Android 10 работи успешно."
+            "Системата на Android работи успешно със звук."
         )
 
     def toggle_system(self, instance):
@@ -270,9 +294,11 @@ class NotificationApp(App):
         next_event = None
 
         for event_date, title_text, facility_text, check_text, shift_text in self.yearly_events:
-            if event_date.date() <= now.date():
+            # Строго по-малко: Минали дни (без днешния)
+            if event_date.date() < now.date():
                 past_event = (event_date, title_text, facility_text, check_text, shift_text)
-            elif event_date.date() > now.date() and next_event is None:
+            # По-голямо или равно: Днешният ден влиза тук като "Следващо предстоящо" събитие
+            elif event_date.date() >= now.date() and next_event is None:
                 next_event = (event_date, title_text, facility_text, check_text, shift_text)
 
         if past_event:
@@ -289,7 +315,7 @@ class NotificationApp(App):
             self.next_check.text = f"Проверка: {next_event[3]}"
             self.next_shift.text = f"Смяна: {next_event[4]}"
 
-            # Автоматично известие за текущия ден
+            # Коригирано условие: Сега успешно засича кога събитието е ДНЕС
             if next_event[0].date() == now.date() and self.last_notified_date != now.date():
                 self.last_notified_date = now.date()
                 self.send_android_alert(
