@@ -36,9 +36,8 @@ jobs:
           echo 'source.dir = .' >> buildozer.spec
           echo 'source.include_exts = py,png,jpg,kv,atlas' >> buildozer.spec
           echo 'version = 1.0' >> buildozer.spec
-          echo 'requirements = python3==3.12.0, hostpython3==3.12.0, kivy==2.3.0, pillow==10.2.0' >> buildozer.spec
-          # ТОЧНИЯТ СИНТАКСИС: Блокираме несъвместимите модули grp и spwd
-          echo 'python.modules_blacklist = grp,spwd' >> buildozer.spec
+          # ПРЕВКЛЮЧВАМЕ НА СТАБИЛНИЯ PYTHON 3.11 (Край на грешките в grpmodule.c)
+          echo 'requirements = python3==3.11.0, hostpython3==3.11.0, kivy==2.3.0, pillow==10.2.0' >> buildozer.spec
           echo 'orientation = portrait' >> buildozer.spec
           echo 'fullscreen = 1' >> buildozer.spec
           echo 'android.archs = arm64-v8a' >> buildozer.spec
