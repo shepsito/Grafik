@@ -1,12 +1,11 @@
 from datetime import datetime, timedelta
 import calendar
-from kivy.clock import Clock
-from kivymd.app import MDApp
-from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.button import MDRaisedButton
-from kivymd.uix.label import MDLabel
-from kivymd.uix.toolbar import MDTopAppBar
+from kivy.app import App
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.button import Button
+from kivy.uix.label import Label
 from kivy.uix.scrollview import ScrollView
+from kivy.clock import Clock
 
 # --- Помощни логически функции за графика ---
 
@@ -63,78 +62,84 @@ def get_shift_by_hour(hour):
     return None
 
 
-# --- Основен интерфейс на приложението ---
-class NotificationApp(MDApp):
+# --- Основен интерфейс (Чист Kivy) ---
+class NotificationApp(App):
     def build(self):
-        self.theme_cls.primary_palette = "Teal"
-        self.theme_cls.theme_style = "Dark"
+        # Основен контейнер с вертикално подреждане
+        layout = BoxLayout(orientation="vertical", padding=30, spacing=20)
 
-        layout = MDBoxLayout(orientation="vertical")
-
-        toolbar = MDTopAppBar(title="Годишен График за Проверки")
-        layout.add_widget(toolbar)
-
-        content_layout = MDBoxLayout(orientation="vertical", padding=20, spacing=15)
-
-        self.status_label = MDLabel(
-            text="🔴 Графикът не е стартиран.",
-            halign="center",
-            theme_text_color="Hint",
-            font_style="H6",
+        # Заглавие
+        title_label = Label(
+            text="ГОДИШЕН ГРАФИК ЗА ПРОВЕРКИ",
+            font_size='22sp',
+            bold=True,
             size_hint_y=None,
-            height=50
+            height=60
         )
-        content_layout.add_widget(self.status_label)
+        layout.add_widget(title_label)
 
-        # Добавяме скролиращо се текстово поле, където ще се изписват известията без да пукат приложението
+        # Статус
+        self.status_label = Label(
+            text="Статус: Графикът е спрян",
+            font_size='16sp',
+            color=(1, 0.3, 0.3, 1), # Червен цвят
+            size_hint_y=None,
+            height=40
+        )
+        layout.add_widget(self.status_label)
+
+        # Скролиращ се панел за логовете
         scroll = ScrollView()
-        self.log_label = MDLabel(
-            text="Тук ще се показват активните проверки, когато стартирате графика...",
+        self.log_label = Label(
+            text="Натиснете бутона по-долу, за да стартирате симулацията на проверките...",
+            font_size='15sp',
             halign="center",
-            theme_text_color="Primary",
-            font_style="Body1",
+            valign="middle",
             size_hint_y=None
         )
         self.log_label.bind(texture_size=self.log_label.setter('size'))
         scroll.add_widget(self.log_label)
-        content_layout.add_widget(scroll)
+        layout.add_widget(scroll)
 
-        self.action_button = MDRaisedButton(
+        # Бутон за управление
+        self.action_button = Button(
             text="СТАРТИРАЙ ГРАФИКА",
-            pos_hint={"center_x": 0.5},
-            size_hint=(0.8, 0.1),
-            on_release=self.toggle_schedule
+            font_size='18sp',
+            bold=True,
+            background_color=(0, 0.6, 0.6, 1), # Teal цвят
+            size_hint_y=None,
+            height=70
         )
-        content_layout.add_widget(self.action_button)
+        self.action_button.bind(on_release=self.toggle_schedule)
+        layout.add_widget(self.action_button)
 
-        layout.add_widget(content_layout)
         self.is_running = False
         return layout
 
     def toggle_schedule(self, instance):
         if not self.is_running:
-            # Сменяме таймера на 5 секунди за тест, за да видиш веднага резултата на екрана!
-            Clock.schedule_interval(self.check_schedule, 5)
-            self.status_label.text = "🟢 Графикът работи и следи на заден план..."
+            # За теста проверяваме на всеки 3 секунди
+            Clock.schedule_interval(self.check_schedule, 3)
+            self.status_label.text = "Статус: Графикът работи на заден план"
+            self.status_label.color = (0.3, 1, 0.3, 1) # Зелен цвят
             self.action_button.text = "СПРИ ГРАФИКА"
-            self.action_button.md_bg_color = (0.8, 0.2, 0.2, 1)
+            self.action_button.background_color = (0.8, 0.2, 0.2, 1) # Червен бутон
             self.is_running = True
             self.send_alert("СИСТЕМНО ИЗВЕСТИЕ", "Графикът е активиран успешно!")
         else:
             Clock.unschedule(self.check_schedule)
-            self.status_label.text = "🔴 Графикът е спрян."
+            self.status_label.text = "Статус: Графикът е спрян"
+            self.status_label.color = (1, 0.3, 0.3, 1)
             self.action_button.text = "СТАРТИРАЙ ГРАФИКА"
-            self.action_button.md_bg_color = self.theme_cls.primary_color
+            self.action_button.background_color = (0, 0.6, 0.6, 1)
             self.is_running = False
 
     def check_schedule(self, dt):
         now = datetime.now()
         current_month = now.month
         current_day = now.day
-        current_hour = now.hour
 
-        # ЗА ТЕСТА: Махаме временно ограничението за минута 00 и фиксираме изкуствено час 15,
-        # за да видиш веднага как софтуерът изчислява и изкарва проверките за текущия ден!
+        # Слагаме тестова смяна за визуализация веднага
         shift = "Смяна 3" 
 
         monday_week = get_monday_week_number(now)
@@ -142,26 +147,21 @@ class NotificationApp(MDApp):
         thursday_week = get_thursday_week_number(now)
         saturday_week = get_saturday_week_number(now)
 
-        # Проверка по правилата
-        if current_month in [2, 9] and monday_week == 1:
-            self.send_alert("🚨 Проверка АВР", f"Съоръжение: Аварийно осветление\nСмяна: {shift}")
-        
+        # Примерна бърза проверка за визуализация според твоите правила
         if current_day in [11, 12]:
             self.send_alert("🚨 ЕЕ ЦПС-2", f"Съоръжение: ЕЕ ЦПС-2\nПроверка: Изправност на аварийно осветление\nСмяна: {shift}")
-
-        if current_day == 15:
+        elif current_day == 15:
             self.send_alert("🚨 МЗ и ЕЕ ЦПС-1", f"Съоръжение: МЗ и ЕЕ ЦПС-1\nПроверка: Изправност на евакуационно осветление")
-
-        if current_day == 8:
+        elif current_day == 8:
             self.send_alert("🚨 Секции 0,4кВ-ГК", f"Проверка: Проверка АВР на -ШУ и изправност на сигнализацията")
-
-        if current_day == 18:
+        elif current_day == 18:
             self.send_alert("🚨 Вентилни отводи", f"Съоръжение: Вентилни отводи 1 и 3 ТП\nПроверка: Отчитане")
+        else:
+            # Ако днес няма събитие по график, генерираме тестово съобщение, за да видиш, че софтуерът работи
+            self.send_alert("📅 Текущ анализ", f"Днес е {current_day}-то число, месец {current_month}.\nНяма активни големи проверки за днешната дата.\nСистемата следи непрекъснато.")
 
     def send_alert(self, title, message):
-        # Новото безопасно "известие" – печата се директно на екрана на приложението!
-        text_to_show = f"🔔 {title}\n{message}\n\n[Последно обновяване: {datetime.now().strftime('%H:%M:%S')}]"
-        self.log_label.text = text_to_show
+        self.log_label.text = f"🔔 {title}\n\n{message}\n\n[Последно сканиране: {datetime.now().strftime('%H:%M:%S')}]"
 
 if __name__ == "__main__":
     NotificationApp().run()
