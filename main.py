@@ -4,11 +4,10 @@ from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.label import Label
-from kivy.uix.scrollview import ScrollView
 from kivy.clock import Clock
 from kivy.graphics import Color, Rectangle
 
-# --- Прецизни помощни логически функции за седмици и тримесечия ---
+# --- Помощни логически функции за седмици и тримесечия ---
 
 def get_monday_week_number(date):
     if date.weekday() != 0: return 0
@@ -57,7 +56,6 @@ def is_last_friday_of_quarter(date):
     return False
 
 
-# --- Генериране на годишния календар с ПРАЗНИ РЕДОВЕ между детайлите ---
 def generate_yearly_schedule(year):
     events = []
     start_date = datetime(year, 1, 1)
@@ -75,66 +73,46 @@ def generate_yearly_schedule(year):
 
         shift = "Смяна 3" 
 
-        # Правило 1
         if current_month in [2, 9] and monday_week == 1:
-            events.append((current, "🚨 Проверка АВР", f"Съоръжение: Аварийно осветление\n\nПроверка: Проверка АВР на захранването\n\nСмяна: {shift}"))
-        # Правило 2
+            events.append((current, "🚨 Проверка АВР", "Аварийно осветление", "Проверка АВР на захранването", shift))
         if current_day in [11, 12]:
-            events.append((current, "🚨 ЕЕ ЦПС-2", f"Съоръжение: ЕЕ ЦПС-2\n\nПроверка: Проверка изправноста на аварийното осветление\n\nСмяна: {shift}"))
-        # Правило 3
+            events.append((current, "🚨 ЕЕ ЦПС-2", "ЕЕ ЦПС-2", "Проверка изправноста на аварийното осветление", shift))
         if current_month in [3, 10] and monday_week in [1, 2]:
-            events.append((current, "🚨 Ф.И. Проверка", f"Съоръжение: По процедура\n\nПроверка: Ф.И. на аварийното осветление\n\nСмяна: {shift}"))
-        # Правило 4
+            events.append((current, "🚨 Ф.И. Проверка", "По процедура", "Ф.И. на аварийното осветление", shift))
         if current_day == 15:
-            events.append((current, "🚨 МЗ и ЕЕ ЦПС-1", f"Съоръжение: МЗ и ЕЕ ЦПС-1\n\nПроверка: Проверка изправността на евакуационното осветление\n\nСмяна: {shift}"))
-        # Правило 5
+            events.append((current, "🚨 МЗ и ЕЕ ЦПС-1", "МЗ и ЕЕ ЦПС-1", "Проверка изправността на евакуационното осветление", shift))
         if is_last_monday_of_quarter(current):
-            events.append((current, "🚨 Квартална Проверка АВР (Пон.)", f"Съоръжение: МЗ,ЦПС-1\n\nПроверка: Проверка АВР сборки на 0,4кВ захранвани от 3 и 4 БН\n\nСмяна: {shift}"))
-        # Правило 6
+            events.append((current, "🚨 Квартална Проверка АВР (Пон.)", "МЗ,ЦПС-1", "Проверка АВР сборки на 0,4кВ захранвани от 3 и 4 БН", shift))
         if is_last_tuesday_of_quarter(current):
-            events.append((current, "🚨 Квартална Проверка АВР (Вт.)", f"Съоръжение: МЗ\n\nПроверка: Проверка АВР сборки на 0,4кВ захранвани от 23 и 24 БН\n\nСмяна: {shift}"))
-        # Правило 7
+            events.append((current, "🚨 Квартална Проверка АВР (Вт.)", "МЗ", "Проверка АВР сборки на 0,4кВ захранвани от 23 и 24 БН", shift))
         if is_last_wednesday_of_quarter(current):
-            events.append((current, "🚨 Квартална Проверка АВР (Ср.)", f"Съоръжение: МЗ\n\nПроверка: Проверка АВР сборки на 0,4кВ съответната с-ма-I (II,III)-блок 3\n\nСмяна: {shift}"))
-        # Правило 8
+            events.append((current, "🚨 Квартална Проверка АВР (Ср.)", "МЗ", "Проверка АВР сборки на 0,4кВ съответната с-ма-I (II,III)-блок 3", shift))
         if is_last_thursday_of_quarter(current):
-            events.append((current, "🚨 Квартална Проверка АВР (Четв.)", f"Съоръжение: МЗ\n\nПроверка: Проверка АВР сборки на 0,4кВ съответната с-ма-I (II,III)-блок 4\n\nСмяна: {shift}"))
-        # Правило 9
+            events.append((current, "🚨 Квартална Проверка АВР (Четв.)", "МЗ", "Проверка АВР сборки на 0,4кВ съответната с-ма-I (II,III)-блок 4", shift))
         if is_last_friday_of_quarter(current):
-            events.append((current, "🚨 Квартална Проверка АВР (Петък)", f"Съоръжение: МЗ,ХВО и ЦПС-1\n\nПроверка: Проверка АВР сборки на 0,4кВ с/без сборки захр.от 3,4,23,24БН,33БН I-III,43БН I-III /\n\nСмяна: {shift}"))
-        # Правило 10
+            events.append((current, "🚨 Квартална Проверка АВР (Петък)", "МЗ,ХВО и ЦПС-1", "Проверка АВР сборки на 0,4кВ с/без сборки захр.от 3,4,23,24БН,33БН I-III,43БН I-III /", shift))
         if current_day == 8:
-            events.append((current, "🚨 Секции 0,4кВ-ГК", f"Съоръжение: Секции 0,4кВ-ГК 1_4 block\n\nПроверка: Проверка АВР на -ШУ и изправността на сигнализацията на панел 'С'БЩУ за повикване в КРу\n\nСмяна: {shift}"))
-        # Правило 11
+            events.append((current, "🚨 Секции 0,4кВ-ГК", "Секции 0,4кВ-ГК 1_4 блок", "Проверка АВР на -ШУ и изправността на сигнализацията на панел 'С'БЩУ за повикване в КРу", shift))
         if current_day == 18:
-            events.append((current, "🚨 Вентилни отводи", f"Съоръжение: Вентилни отводи 1 и 3 ТП\n\nПроверка: Отчитане на -вентилни отводи\n\nСмяна: {shift}"))
-        # Правило 12
+            events.append((current, "🚨 Вентилни отводи", "Вентилни отводи 1 и 3 ТП", "Отчитане на -вентилни отводи", shift))
         if current_day == 1:
-            events.append((current, "🚨 Ел.двигатели 6кВ", f"Съоръжение: Ел.двигатели 6кВ\n\nПроверка: Измерване съпротивлението на изолацията на ел.двиг.6кВ.-ПВТ в резерв,1и 2ППП\n\nСмяна: Смяна 1"))
-        # Правило 13
+            events.append((current, "🚨 Ел.двигатели 6кВ", "Ел.двигатели 6кВ", "Измерване съпротивлението на изолацията на ел.двиг.6кВ.-ПВТ в резерв,1и 2ППП", "Смяна 1"))
         if current_month in [1, 4, 7, 10] and monday_week == 1:
-            events.append((current, "🚨 Проверка ДГ-А", f"Съоръжение: ДГ-A\n\nПроверка: Ф.И. на автономен товар не по малко от 60мин.\n\nСмяна: {shift}"))
-        # Правило 14
+            events.append((current, "🚨 Проверка ДГ-А", "ДГ-A", "Ф.И. на автономен товар не по малко от 60мин.", shift))
         if current_month in [1, 4, 7, 10] and monday_week == 2:
-            events.append((current, "🚨 Проверка ДГ-Б", f"Съоръжение: ДГ-Б\n\nПроверка: Ф.И. на автономен товар не по малко от 60мин.\n\nСмяна: {shift}"))
-        # Правило 15
+            events.append((current, "🚨 Проверка ДГ-Б", "ДГ-Б", "Ф.И. на автономен товар не по малко от 60мин.", shift))
         if current_month in [1, 4, 7, 10] and wednesday_week == 3:
-            events.append((current, "🚨 Проверка 2АДГ-ДСАПП-4", f"Съоръжение: 2АДГ-ДСАПП-4\n\nПроверка: Ф.И на аварийното ел.захранване на СПИ\n\nСмяна: {shift}"))
-        # Правило 16
+            events.append((current, "🚨 Проверка 2АДГ-ДСАПП-4", "2АДГ-ДСАПП-4", "Ф.И на аварийното ел.захранване на СПИ", shift))
         if current_month in [1, 4, 7, 10] and thursday_week == 3:
-            events.append((current, "🚨 Проверка ДГ-КАС", f"Съоръжение: ДГ-КАС\n\nПроверка: Ф.И на аварийното ел.захранване на СПИ\n\nСмяна: {shift}"))
-        # Правило 17
+            events.append((current, "🚨 Проверка ДГ-КАС", "ДГ-КАС", "Ф.И на аварийното ел.захранване на СПИ", shift))
         if current_month in [6, 12] and monday_week == 3:
-            events.append((current, "🚨 Проверка ГРТ-ЦНРД", f"Съоръжение: ГРТ-ЦНРД\n\nПроверка: Изпробване на АВР на ел.захранването\n\nСмяна: {shift}"))
-        # Правило 18
+            events.append((current, "🚨 Проверка ГРТ-ЦНРД", "ГРТ-ЦНРД", "Изпробване на АВР на ел.захранването", shift))
         if current_day == 1:
-            events.append((current, "🚨 Отчитане електромери", f"Съоръжение: По методика ДП.ЕД.МТ.1153\n\nПроверка: Отчитане електомерите за консумирана ел.енергия\n\nСмяна: Смяна 2"))
-        # Правило 19
+            events.append((current, "🚨 Отчитане електромери", "По методика ДП.ЕД.МТ.1153", "Отчитане електомерите за консумирана ел.енергия", "Смяна 2"))
         if saturday_week == 3:
-            events.append((current, "🚨 Проверка ТП1, ТП3", f"Съоръжение: ТП1,ТП3\n\nПроверка: Изпропване на охлаждащите вентилатори на 1ТП и 3ТП чрез ръчно включване\n\nСмяна: {shift}"))
-        # Правило 20
+            events.append((current, "🚨 Проверка ТП1, ТП3", "ТП1,ТП3", "Изпропване на охлаждащите вентилатори на 1ТП и 3ТП чрез ръчно включване", shift))
         if wednesday_week == 3 or saturday_week == 3:
-            events.append((current, "🚨 Измерване стойности по фидери", f"Съоръжение: По методика ДП.ЕД.МТ.1153\n\nПроверка: Измерване стойностите по фидерите за АКС,СБК-2 и ТРЗ/Бюро пропуски\n\nСмяна: {shift}"))
+            events.append((current, "🚨 Измерване стойности по фидери", "По методика ДП.ЕД.МТ.1153", "Измерване стойностите по фидерите за АКС,СБК-2 и ТРЗ/Бюро пропуски", shift))
 
         current += timedelta(days=1)
     
@@ -146,79 +124,68 @@ class NotificationApp(App):
     def build(self):
         self.yearly_events = generate_yearly_schedule(datetime.now().year)
 
-        main_layout = BoxLayout(orientation="vertical", padding=12, spacing=12)
+        # Главен контейнер, запълващ целия екран равномерно
+        main_layout = BoxLayout(orientation="vertical", padding=15, spacing=15)
 
-        # 1. Основно заглавие
-        title = Label(text="ГРАФИК ПРОВЕРКИ v2.8", font_size='22sp', bold=True, size_hint_y=None, height=40)
+        # 1. Заглавие (Най-горе)
+        title = Label(text="ГРАФИК ПРОВЕРКИ v3.0", font_size='22sp', bold=True, size_hint_y=0.08)
         main_layout.add_widget(title)
 
-        # 2. Каре: ПОСЛЕДНО МИНАЛО СЪБИТИЕ (Височина 260 за раздалечените редове)
-        self.past_box = BoxLayout(orientation="vertical", padding=12, spacing=4, size_hint_y=None, height=260)
+        # 2. КАРЕ: МИНАЛО СЪБИТИЕ (Заема точно 35% от екрана)
+        self.past_box = BoxLayout(orientation="vertical", padding=15, spacing=10, size_hint_y=0.35)
         with self.past_box.canvas.before:
-            Color(0.18, 0.18, 0.24, 1) 
-            self.rect1 = Rectangle(size=self.past_box.size, pos=self.past_box.pos)
+            Color(0.16, 0.16, 0.22, 1) 
+            self.rect1 = Rectangle()
         self.past_box.bind(size=self._update_rect1, pos=self._update_rect1)
         
-        past_title_lbl = Label(text="ПОСЛЕДНО МИНАЛО СЪБИТИЕ:", bold=True, color=(0.7, 0.7, 0.7, 1), font_size='13sp', size_hint_y=None, height=18, halign='left')
-        past_title_lbl.bind(size=lambda ins, val: setattr(ins, 'text_size', (val[0], None)))
-        self.past_box.add_widget(past_title_lbl)
+        # Четири отделни реда за перфектно разстояние
+        self.past_title = Label(text="ПОСЛЕДНО МИНАЛО СЪБИТИЕ:", bold=True, color=(0.7, 0.7, 0.7, 1), font_size='13sp', size_hint_y=0.15, halign='left')
+        self.past_header = Label(text="Дата: --.--.----  |  Няма данни", font_size='16sp', bold=True, color=(1, 0.5, 0.5, 1), size_hint_y=0.25, halign='left')
+        self.past_facility = Label(text="Съоръжение: --", font_size='14sp', size_hint_y=0.2, halign='left')
+        self.past_check = Label(text="Проверка: --", font_size='14sp', size_hint_y=0.2, halign='left')
+        self.past_shift = Label(text="Смяна: --", font_size='14sp', size_hint_y=0.2, halign='left')
 
-        self.past_header = Label(text="Няма данни", font_size='15sp', bold=True, color=(1, 0.5, 0.5, 1), size_hint_y=None, height=22, halign='left')
-        self.past_header.bind(size=lambda ins, val: setattr(ins, 'text_size', (val[0], None)))
-        self.past_box.add_widget(self.past_header)
-
-        # Скрол зона за самото дълго описание на миналата задача
-        past_scroll = ScrollView()
-        self.past_desc = Label(text="Натиснете бутона за старт или ръчен тест.", font_size='15sp', color=(0.9, 0.9, 0.9, 1), size_hint_y=None, halign='left', valign='top')
-        self.past_desc.bind(size=lambda ins, val: setattr(ins, 'text_size', (val[0], None)))
-        self.past_desc.bind(texture_size=self.past_desc.setter('size'))
-        past_scroll.add_widget(self.past_desc)
-        self.past_box.add_widget(past_scroll)
-        
+        # Свързване за правилно подравняване вляво
+        for lbl in [self.past_title, self.past_header, self.past_facility, self.past_check, self.past_shift]:
+            lbl.bind(size=lambda ins, val: setattr(ins, 'text_size', (val[0], None)))
+            self.past_box.add_widget(lbl)
+            
         main_layout.add_widget(self.past_box)
 
-        # 3. Каре: СЛЕДВАЩО ПРЕДСТОЯЩО СЪБИТИЕ (Височина 260)
-        self.next_box = BoxLayout(orientation="vertical", padding=12, spacing=4, size_hint_y=None, height=260)
+        # 3. КАРЕ: СЛЕДВАЩО СЪБИТИЕ (Заема точно 35% от екрана)
+        self.next_box = BoxLayout(orientation="vertical", padding=15, spacing=10, size_hint_y=0.35)
         with self.next_box.canvas.before:
-            Color(0.12, 0.22, 0.18, 1) 
-            self.rect2 = Rectangle(size=self.next_box.size, pos=self.next_box.pos)
+            Color(0.11, 0.20, 0.16, 1) 
+            self.rect2 = Rectangle()
         self.next_box.bind(size=self._update_rect2, pos=self._update_rect2)
+        
+        self.next_title = Label(text="СЛЕДВАЩО ПРЕДСТОЯЩО СЪБИТИЕ:", bold=True, color=(0.7, 0.7, 0.7, 1), font_size='13sp', size_hint_y=0.15, halign='left')
+        self.next_header = Label(text="Дата: --.--.----  |  Няма данни", font_size='16sp', bold=True, color=(0.4, 1, 0.4, 1), size_hint_y=0.25, halign='left')
+        self.next_facility = Label(text="Съоръжение: --", font_size='14sp', size_hint_y=0.2, halign='left')
+        self.next_check = Label(text="Проверка: --", font_size='14sp', size_hint_y=0.2, halign='left')
+        self.next_shift = Label(text="Смяна: --", font_size='14sp', size_hint_y=0.2, halign='left')
 
-        next_title_lbl = Label(text="СЛЕДВАЩО ПРЕДСТОЯЩО СЪБИТИЕ:", bold=True, color=(0.7, 0.7, 0.7, 1), font_size='13sp', size_hint_y=None, height=18, halign='left')
-        next_title_lbl.bind(size=lambda ins, val: setattr(ins, 'text_size', (val[0], None)))
-        self.next_box.add_widget(next_title_lbl)
-        
-        self.next_header = Label(text="Няма данни", font_size='15sp', bold=True, color=(0.4, 1, 0.4, 1), size_hint_y=None, height=22, halign='left')
-        self.next_header.bind(size=lambda ins, val: setattr(ins, 'text_size', (val[0], None)))
-        self.next_box.add_widget(self.next_header)
-        
-        # Скрол зона за описанието на следващата задача
-        next_scroll = ScrollView()
-        self.next_desc = Label(text="Натиснете бутона за старт или ръчен тест.", font_size='15sp', color=(0.9, 0.9, 0.9, 1), size_hint_y=None, halign='left', valign='top')
-        self.next_desc.bind(size=lambda ins, val: setattr(ins, 'text_size', (val[0], None)))
-        self.next_desc.bind(texture_size=self.next_desc.setter('size'))
-        next_scroll.add_widget(self.next_desc)
-        self.next_box.add_widget(next_scroll)
+        for lbl in [self.next_title, self.next_header, self.next_facility, self.next_check, self.next_shift]:
+            lbl.bind(size=lambda ins, val: setattr(ins, 'text_size', (val[0], None)))
+            self.next_box.add_widget(lbl)
 
         main_layout.add_widget(self.next_box)
 
-        # 4. Долно малко поле за статус на системата
-        scroll_status = ScrollView(size_hint_y=None, height=40)
-        self.status_label = Label(text="Системата е готова.", font_size='14sp', size_hint_y=None, halign='center', color=(0.8, 0.8, 0.8, 1))
-        self.status_label.bind(size=lambda ins, val: setattr(ins, 'text_size', (val[0], None)))
-        self.status_label.bind(texture_size=self.status_label.setter('size'))
-        scroll_status.add_widget(self.status_label)
-        main_layout.add_widget(scroll_status)
+        # 4. Поле за Статус и Бутони (Най-долу, общо 22% от екрана)
+        bottom_layout = BoxLayout(orientation="vertical", spacing=8, size_hint_y=0.22)
+        
+        self.status_label = Label(text="Системата е готова.", font_size='13sp', size_hint_y=0.2, halign='center', color=(0.8, 0.8, 0.8, 1))
+        bottom_layout.add_widget(self.status_label)
 
-        # 5. Бутон за ръчен тест (Оранжев)
-        self.test_btn = Button(text="ТЕСТВАЙ ИЗВЕСТИЯТА (РЪЧНО)", font_size='16sp', bold=True, background_color=(0.9, 0.5, 0.1, 1), size_hint_y=None, height=50)
+        self.test_btn = Button(text="ТЕСТВАЙ ИЗВЕСТИЯТА (РЪЧНО)", font_size='16sp', bold=True, background_color=(0.9, 0.5, 0.1, 1), size_hint_y=0.4)
         self.test_btn.bind(on_release=self.trigger_manual_test)
-        main_layout.add_widget(self.test_btn)
+        bottom_layout.add_widget(self.test_btn)
 
-        # 6. Основен Бутон: МОНИТОРИНГ
-        self.btn = Button(text="СТАРТИРАЙ МОНИТОРИНГ", font_size='16sp', bold=True, background_color=(0, 0.6, 0.6, 1), size_hint_y=None, height=50)
+        self.btn = Button(text="СТАРТИРАЙ МОНИТОРИНГ", font_size='16sp', bold=True, background_color=(0, 0.6, 0.6, 1), size_hint_y=0.4)
         self.btn.bind(on_release=self.toggle_system)
-        main_layout.add_widget(self.btn)
+        bottom_layout.add_widget(self.btn)
+
+        main_layout.add_widget(bottom_layout)
 
         self.is_running = False
         return main_layout
@@ -229,7 +196,7 @@ class NotificationApp(App):
     def trigger_manual_test(self, instance):
         self.update_events_display()
         now = datetime.now()
-        self.status_label.text = f"Ръчно сканиране... УСПЕШНО! в {now.strftime('%H:%M:%S')}"
+        self.status_label.text = f"Последно ръчно обновяване: {now.strftime('%H:%M:%S')}"
 
     def toggle_system(self, instance):
         if not self.is_running:
@@ -250,31 +217,29 @@ class NotificationApp(App):
         past_event = None
         next_event = None
 
-        for event_date, title_text, full_msg in self.yearly_events:
+        for event_date, title_text, facility_text, check_text, shift_text in self.yearly_events:
             if event_date.date() <= now.date():
-                past_event = (event_date, title_text, full_msg)
+                past_event = (event_date, title_text, facility_text, check_text, shift_text)
             elif event_date.date() > now.date() and next_event is None:
-                next_event = (event_date, title_text, full_msg)
+                next_event = (event_date, title_text, facility_text, check_text, shift_text)
 
-        # Прехвърляне на новите структурирани събития с празен ред
+        # Запълване на данните по редове
         if past_event:
             date_str = past_event[0].strftime('%d.%m.%Y')
-            self.past_header.text = f"Дата: {date_str}  |  {past_event[1]}\n"
-            self.past_desc.text = past_event[2]
-        else:
-            self.past_header.text = "Няма събития"
-            self.past_desc.text = ""
+            self.past_header.text = f"Дата: {date_str}  |  {past_event[1]}"
+            self.past_facility.text = f"Съоръжение: {past_event[2]}"
+            self.past_check.text = f"Проверка: {past_event[3]}"
+            self.past_shift.text = f"Смяна: {past_event[4]}"
 
         if next_event:
             date_str = next_event[0].strftime('%d.%m.%Y')
-            self.next_header.text = f"Дата: {date_str}  |  {next_event[1]}\n"
-            self.next_desc.text = next_event[2]
-        else:
-            self.next_header.text = "Няма предстоящи събития"
-            self.next_desc.text = ""
+            self.next_header.text = f"Дата: {date_str}  |  {next_event[1]}"
+            self.next_facility.text = f"Съоръжение: {next_event[2]}"
+            self.next_check.text = f"Проверка: {next_event[3]}"
+            self.next_shift.text = f"Смяна: {next_event[4]}"
 
         if self.is_running:
-            self.status_label.text = f"Последна автоматична проверка: {now.strftime('%H:%M:%S')}"
+            self.status_label.text = f"Автоматичен мониторинг... {now.strftime('%H:%M:%S')}"
 
 if __name__ == "__main__":
     NotificationApp().run()
