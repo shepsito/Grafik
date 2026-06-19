@@ -76,15 +76,15 @@ def generate_yearly_schedule(year):
         if current_day == 15:
             events.append((current, "🚨 МЗ и ЕЕ ЦПС-1", "МЗ и ЕЕ ЦПС-1", "Проверка изправността на евакуационното осветление", shift))
         if is_last_monday_of_quarter(current):
-            events.append((current, "🚨 Квартална Проверка АВР (Пон.)", "МЗ,ЦПС-1", "Проверка АВР сборки на 0,4кВ захранвани от 3 и 4 БН", shift))
+            events.append((current, "🚨  Проверка АВР (Пон.)", "МЗ,ЦПС-1", "Проверка АВР сборки на 0,4кВ захранвани от 3 и 4 БН", shift))
         if is_last_tuesday_of_quarter(current):
-            events.append((current, "🚨 Квартална Проверка АВР (Вт.)", "МЗ", "Проверка АВР сборки на 0,4кВ захранвани от 23 и 24 БН", shift))
+            events.append((current, "🚨 Проверка АВР (Вт.)", "МЗ", "Проверка АВР сборки на 0,4кВ захранвани от 23 и 24 БН", shift))
         if is_last_wednesday_of_quarter(current):
-            events.append((current, "🚨 Квартална Проверка АВР (Ср.)", "МЗ", "Проверка АВР сборки на 0,4кВ съответната с-ма-I (II,III)-блок 3", shift))
+            events.append((current, "🚨  Проверка АВР (Ср.)", "МЗ", "Проверка АВР сборки на 0,4кВ съответната с-ма-I (II,III)-блок 3", shift))
         if is_last_thursday_of_quarter(current):
-            events.append((current, "🚨 Квартална Проверка АВР (Четв.)", "МЗ", "Проверка АВР сборки на 0,4кВ съответната с-ма-I (II,III)-блок 4", shift))
+            events.append((current, "🚨  Проверка АВР (Четв.)", "МЗ", "Проверка АВР сборки на 0,4кВ съответната с-ма-I (II,III)-блок 4", shift))
         if is_last_friday_of_quarter(current):
-            events.append((current, "🚨 Квартална Проверка АВР (Петък)", "МЗ,ХВО и ЦПС-1", "Проверка АВР сборки на 0,4кВ с/без сборки захр.от 3,4,23,24БН,33БН I-III,43БН I-III /", shift))
+            events.append((current, "🚨  Проверка АВР (Петък)", "МЗ,ХВО и ЦПС-1", "Проверка АВР сборки на 0,4кВ с/без сборки захр.от 3,4,23,24БН,33БН I-III,43БН I-III /", shift))
         if current_day == 8:
             events.append((current, "🚨 Секции 0,4кВ-ГК", "Секции 0,4кВ-ГК 1_4 block", "Проверка АВР на -ШУ и изправността на сигнализацията на панел 'С'БЩУ за повикване в КРу", shift))
         if current_day == 18:
