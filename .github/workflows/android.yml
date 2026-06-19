@@ -36,19 +36,22 @@ jobs:
           echo 'source.dir = .' >> buildozer.spec
           echo 'source.include_exts = py,png,jpg,kv,atlas' >> buildozer.spec
           echo 'version = 1.0' >> buildozer.spec
-          # ПРЕВКЛЮЧВАМЕ НА СТАБИЛНИЯ PYTHON 3.11 (Край на грешките в grpmodule.c)
           echo 'requirements = python3==3.11.0, hostpython3==3.11.0, kivy==2.3.0, pillow==10.2.0' >> buildozer.spec
           echo 'orientation = portrait' >> buildozer.spec
           echo 'fullscreen = 1' >> buildozer.spec
           echo 'android.archs = arm64-v8a' >> buildozer.spec
           echo 'android.api = 33' >> buildozer.spec
           echo 'android.minapi = 24' >> buildozer.spec
+          # ФИКС ЗА ГРАФИКАТА: Наказваме Buildozer да ползва стабилното NDK 25c, за да не гърми OpenGL
+          echo 'android.ndk = 25c' >> buildozer.spec
           echo '[buildozer]' >> buildozer.spec
           echo 'log_level = 2' >> buildozer.spec
 
       - name: Build APK with Buildozer
         run: |
           export APP_ANDROID_ACCEPT_SDK_LICENSE="1"
+          # Допълнително казваме на компилатора да си затвори очите за несъвместими указатели
+          export CFLAGS="-Wno-incompatible-function-pointer-types"
           buildozer android debug
           
       - name: Upload APK Artifact
