@@ -36,16 +36,23 @@ jobs:
           echo 'source.dir = .' >> buildozer.spec
           echo 'source.include_exts = py,png,jpg,kv,atlas' >> buildozer.spec
           echo 'version = 1.0' >> buildozer.spec
-          # Добавен plyer в изискванията:
-          echo 'requirements = python3==3.11.0, hostpython3==3.11.0, kivy==2.3.0, pillow==10.2.0, plyer' >> buildozer.spec
+          
+          #Requirements: Добавяме pyjnius и махаме plyer (защото работим с чист Android Java API)
+          echo 'requirements = python3==3.11.0, hostpython3==3.11.0, kivy==2.3.0, pillow==10.2.0, pyjnius' >> buildozer.spec
+          
           echo 'orientation = portrait' >> buildozer.spec
           echo 'fullscreen = 1' >> buildozer.spec
           echo 'android.archs = arm64-v8a' >> buildozer.spec
           echo 'android.api = 33' >> buildozer.spec
           echo 'android.minapi = 24' >> buildozer.spec
-          # Добавени разрешения за звукови известия на Android:
-          echo 'android.permissions = POST_NOTIFICATIONS, VIBRATE' >> buildozer.spec
-          # ФИКС ЗА ГРАФИКАТА: Наказваме Buildozer да ползва стабилното NDK 25c, за да не гърми OpenGL
+          
+          # Разрешения: Добавени са нужните права за будилника, вибрацията, известията и пускане при рестарт
+          echo 'android.permissions = POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK, RECEIVE_BOOT_COMPLETED' >> buildozer.spec
+          
+          # СЛУЖБА (SERVICES): Казваме на Buildozer да регистрира service.py като фонов процес
+          echo 'services = MyNotificationService:service.py' >> buildozer.spec
+          
+          # ФИКС ЗА ГРАФИКАТА: NDK 25c
           echo 'android.ndk = 25c' >> buildozer.spec
           echo '[buildozer]' >> buildozer.spec
           echo 'log_level = 2' >> buildozer.spec
@@ -53,7 +60,6 @@ jobs:
       - name: Build APK with Buildozer
         run: |
           export APP_ANDROID_ACCEPT_SDK_LICENSE="1"
-          # Допълнително казваме на компилатора да си затвори очите за несъвместими указатели
           export CFLAGS="-Wno-incompatible-function-pointer-types"
           buildozer android debug
           
