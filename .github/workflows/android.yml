@@ -41,7 +41,7 @@ jobs:
           echo 'android.archs = arm64-v8a' >> buildozer.spec
           echo 'android.api = 33' >> buildozer.spec
           echo 'android.minapi = 24' >> buildozer.spec
-          echo 'android.permissions = VIBRATE, POST_NOTIFICATIONS' >> buildozer.spec
+          echo 'android.permissions = NOTIFICATION, VIBRATE, POST_NOTIFICATIONS' >> buildozer.spec
           echo '[buildozer]' >> buildozer.spec
           echo 'log_level = 2' >> buildozer.spec
           echo 'warn_on_root = 1' >> buildozer.spec
