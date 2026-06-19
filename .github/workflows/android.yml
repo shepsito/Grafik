@@ -19,10 +19,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y git zip unzip python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev tk-dev libgdbm-compat-dev libreoffice-dev libmpdec-dev bluez libbluetooth-dev
 
-      - name: Install Buildozer
+      - name: Install Buildozer and Cython
         run: |
           pip3 install --user --upgrade pip
-          pip3 install --user "buildozer==1.5.0"
+          pip3 install --user "Cython==0.29.35" "buildozer==1.5.0"
+
+      - name: Add user local bin to PATH
+        run: echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
 
       - name: Create buildozer.spec
         run: |
@@ -33,7 +36,7 @@ jobs:
           echo 'source.dir = .' >> buildozer.spec
           echo 'source.include_exts = py,png,jpg,kv,atlas' >> buildozer.spec
           echo 'version = 1.0' >> buildozer.spec
-          # САМО ЧИСТ KIVY – никакви KivyMD, никакви фиксирани версии, за да няма конфликти
+          # Използваме чист kivy за максимална съвместимост
           echo 'requirements = python3, kivy' >> buildozer.spec
           echo 'orientation = portrait' >> buildozer.spec
           echo 'fullscreen = 1' >> buildozer.spec
@@ -45,9 +48,8 @@ jobs:
 
       - name: Build APK with Buildozer
         run: |
-          export PATH=$PATH:~/.local/bin
-          yes | buildozer android debug
-
+          buildozer android debug
+          
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
