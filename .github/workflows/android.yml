@@ -34,7 +34,7 @@ jobs:
           echo 'source.include_exts = py,png,jpg,kv,atlas' >> buildozer.spec
           echo 'version = 1.0' >> buildozer.spec
           # ТУК Е ПРОМЯНАТА: Заключваме версията на Python към стабилната 3.12
-          echo 'requirements = python3==3.12.0, kivy==2.3.0, kivymd==1.1.1, pillow' >> buildozer.spec
+          echo 'requirements = python3, kivy>=2.4.0, kivymd>=1.2.0, pillow' >> buildozer.spec
           echo 'orientation = portrait' >> buildozer.spec
           echo 'fullscreen = 1' >> buildozer.spec
           echo 'android.archs = arm64-v8a' >> buildozer.spec
