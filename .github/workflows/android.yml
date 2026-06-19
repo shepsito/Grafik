@@ -36,12 +36,15 @@ jobs:
           echo 'source.dir = .' >> buildozer.spec
           echo 'source.include_exts = py,png,jpg,kv,atlas' >> buildozer.spec
           echo 'version = 1.0' >> buildozer.spec
-          echo 'requirements = python3==3.11.0, hostpython3==3.11.0, kivy==2.3.0, pillow==10.2.0' >> buildozer.spec
+          # Добавен plyer в изискванията:
+          echo 'requirements = python3==3.11.0, hostpython3==3.11.0, kivy==2.3.0, pillow==10.2.0, plyer' >> buildozer.spec
           echo 'orientation = portrait' >> buildozer.spec
           echo 'fullscreen = 1' >> buildozer.spec
           echo 'android.archs = arm64-v8a' >> buildozer.spec
           echo 'android.api = 33' >> buildozer.spec
           echo 'android.minapi = 24' >> buildozer.spec
+          # Добавени разрешения за звукови известия на Android:
+          echo 'android.permissions = POST_NOTIFICATIONS, VIBRATE' >> buildozer.spec
           # ФИКС ЗА ГРАФИКАТА: Наказваме Buildozer да ползва стабилното NDK 25c, за да не гърми OpenGL
           echo 'android.ndk = 25c' >> buildozer.spec
           echo '[buildozer]' >> buildozer.spec
