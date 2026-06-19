@@ -296,7 +296,9 @@ class NotificationApp(MDApp):
             self.send_alert("🚨 График: Измерване стойности по фидери", msg)
 
     def send_alert(self, title, message):
+        # Използваме try-except блок, за да предотвратим CRASH, ако Android откаже известието
         try:
+            from plyer import notification
             notification.notify(
                 title=title,
                 message=message,
