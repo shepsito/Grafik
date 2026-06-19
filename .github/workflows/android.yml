@@ -36,10 +36,7 @@ jobs:
           echo 'source.dir = .' >> buildozer.spec
           echo 'source.include_exts = py,png,jpg,kv,atlas' >> buildozer.spec
           echo 'version = 1.0' >> buildozer.spec
-          # Коригирани изисквания за Python 3.12
           echo 'requirements = python3==3.12.0, hostpython3==3.12.0, kivy==2.3.0, pillow==10.2.0' >> buildozer.spec
-          # ЕТО ГО РЕШЕНИЕТО: Блокираме проблемния модул grp
-          echo 'p4a.modules_blacklist = grp' >> buildozer.spec
           echo 'orientation = portrait' >> buildozer.spec
           echo 'fullscreen = 1' >> buildozer.spec
           echo 'android.archs = arm64-v8a' >> buildozer.spec
@@ -51,6 +48,8 @@ jobs:
       - name: Build APK with Buildozer
         run: |
           export APP_ANDROID_ACCEPT_SDK_LICENSE="1"
+          # ТУК Е РЕШЕНИЕТО: Насилствено забраняваме grp на системно ниво в Linux
+          export P4A_MODULES_BLACKLIST="grp"
           buildozer android debug
           
       - name: Upload APK Artifact
