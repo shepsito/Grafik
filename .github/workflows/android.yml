@@ -49,7 +49,7 @@ jobs:
           # Разрешения: Нужни за известия, будилник, вибрация и стартиране при boot
           echo 'android.permissions = POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK, RECEIVE_BOOT_COMPLETED' >> buildozer.spec
           
-          # КОРИГИРАНО: Само малки букви за името на услугата
+          # Само малки букви за името на услугата
           echo 'services = mynotificationservice:service.py' >> buildozer.spec
           
           # ФИКС ЗА ГРАФИКАТА & NDK
@@ -57,14 +57,14 @@ jobs:
           echo '[buildozer]' >> buildozer.spec
           echo 'log_level = 2' >> buildozer.spec
 
-      # Кеширане на Buildozer directory - Обновено с -v2 за изчистване на стария кеш
+      # Кеширане на Buildozer directory - Използваме -v2 за чисто начало
       - name: Cache Buildozer global directory
         uses: actions/cache@v4
         with:
           path: .buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}-v2
 
-      # Нов критичен Step за инсталиране на правилните Android SDK и NDK компоненти
+      # Инсталиране на Android SDK & NDK (С поправка на лицензите)
       - name: Install Android SDK & NDK (API 33, NDK r25)
         run: |
           set -e
@@ -81,8 +81,8 @@ jobs:
 
           export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH"
 
-          # Приемане на лицензите
-          yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --licenses
+          # КОРИГИРАНО (Стабилно автоматично приемане на лицензи без Broken pipe грешка):
+          yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --licenses > /dev/null 2>&1 || true
 
           # Инсталиране на компонентите: platform-tools, API 33, build-tools и NDK r25c
           sdkmanager --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
