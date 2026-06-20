@@ -88,24 +88,29 @@ jobs:
           sdkmanager --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
         shell: bash
 
-      # НОВА СТЪПКА: Диагностика и верификация на инсталираното SDK
-      - name: Verify Android SDK Installation
+      # ВЕРИФИКАЦИЯ И АВТОМАТИЧНО ДОИНСТАЛИРАНЕ (при нужда)
+      - name: Verify SDK Before Build
         run: |
           export ANDROID_SDK_ROOT=$HOME/Android/Sdk
-          echo "=== Проверка на папка platforms ==="
-          ls -la $ANDROID_SDK_ROOT/platforms/ || echo "Директорията platforms не е намерена!"
+          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH"
           
-          echo "=== Списък с инсталирани пакети от sdkmanager ==="
-          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --list_installed
+          if [ ! -d "$ANDROID_SDK_ROOT/platforms/android-33" ]; then
+            echo "🚨 ВНИМАНИЕ: Android API 33 липсва! Стартирам принудително инсталиране..."
+            sdkmanager --sdk_root="$ANDROID_SDK_ROOT" "platforms;android-33"
+          else
+            echo "✅ Android API 33 е намерен и валидиран успешно!"
+          fi
         shell: bash
 
-      # Компилиране с ИСПРАВЕНИТЕ и бетонирани променливи за Buildozer
+      # Компилиране с подаване на ДВЕТЕ версии на SDK променливите (за пълна съвместимост)
       - name: Build APK with Buildozer
         env:
           APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
           CFLAGS: "-Wno-incompatible-function-pointer-types"
-          # Подаваме директните пътища, които p4a очаква, сочещи към уъркър директорията
+          
+          # Покриваме изискванията и на Buildozer, и на p4a под капака
           ANDROIDSDK: "/home/runner/Android/Sdk"
+          ANDROID_SDK_ROOT: "/home/runner/Android/Sdk"
           ANDROIDNDK: "/home/runner/Android/Sdk/ndk/25.2.9519653"
           ANDROIDAPI: "33"
           ANDROIDMINAPI: "24"
@@ -114,6 +119,3 @@ jobs:
           
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
-        with:
-          name: package
-          path: bin/*.apk
