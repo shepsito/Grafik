@@ -48,19 +48,17 @@ jobs:
           echo 'android.permissions = POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK, RECEIVE_BOOT_COMPLETED' >> buildozer.spec
           echo 'services = mynotificationservice:service.py' >> buildozer.spec
           
-          # Свързваме твърдо NDK версията
+          # Синхронизирана NDK версия
           echo 'android.ndk = 25.2.9519653' >> buildozer.spec
           echo '[buildozer]' >> buildozer.spec
           echo 'log_level = 2' >> buildozer.spec
 
-      # Използваме -v4 за кеша, за да изчистим напълно всички стари неуспешни опити
-      - name: Cache Buildozer global directory
-        uses: actions/cache@v4
-        with:
-          path: .buildozer
-          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}-v4
+      # Използваме -v5 ключ, за да изчистим старите дефектни кешове
+      with:
+        path: .buildozer
+        key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}-v5
 
-      # ИНСТАЛИРАНЕ НА SDK & NDK + ЖЕЛЕЗЕН FALLBACK ПРИ Срив НА SDKMANAGER
+      # ИНСТАЛИРАНЕ НА SDK И ЖЕЛЕЗЕН fallback ЗА NDK С RETRY ЛОГИКА
       - name: Install Android SDK & NDK (API 33, NDK r25)
         run: |
           set -euo pipefail
@@ -83,83 +81,14 @@ jobs:
           yes | $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --licenses
           set -o pipefail
 
-          # Опит за инсталация с verbose логване
+          # Инсталиране на леките компоненти през sdkmanager
           echo "Стартирам инсталация през sdkmanager..."
-          $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --verbose "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653" || echo "Предупреждение: някои компоненти от sdkmanager не се инсталираха."
+          $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --verbose "platform-tools" "platforms;android-33" "build-tools;33.0.2" || echo "Предупреждение: Срив при базовите пакети."
 
-          # ПРОВЕРКА И КРИТИЧЕН РЪЧЕН FALLBACK ЗА NDK
+          # ИНТЕГРИРАН ФИКС: ПРОВЕРКА И КРИТИЧЕН РЪЧЕН FALLBACK ЗА NDK С RETRY
           NDK_DIR="$ANDROID_SDK_ROOT/ndk/25.2.9519653"
           if [ ! -d "$NDK_DIR" ]; then
-            echo "🚨 Срив в sdkmanager! NDK не беше намерено на адрес: $NDK_DIR"
-            echo "🚀 Стартирам АЛТЕРНАТИВЕН РЪЧЕН ДИРЕКТЕН ДАУНЛОУД НА NDK r25b..."
+            echo "🚨 Срив в sdkmanager или липсващо NDK! Стартирам алтернативен защитен даунлоуд..."
             
-            curl -L -o /tmp/android-ndk.zip https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
-            mkdir -p /tmp/ndk_extracted
-            unzip -q /tmp/android-ndk.zip -d /tmp/ndk_extracted
-            
-            mkdir -p "$ANDROID_SDK_ROOT/ndk/25.2.9519653"
-            # Преместване на съдържанието от разархивираната папка (android-ndk-r25b) в правилната структура
-            cp -r /tmp/ndk_extracted/android-ndk-r25b/* "$ANDROID_SDK_ROOT/ndk/25.2.9519653/"
-            rm -rf /tmp/ndk_extracted /tmp/android-ndk.zip
-          fi
-
-          # Финална проверка дали всичко е на мястото си
-          if [ ! -d "$ANDROID_SDK_ROOT/ndk/25.2.9519653" ]; then
-            echo "🚨 ГРЕШКА: NDK липсва дори и след ръчния даунлоуд!"
-            exit 1
-          else
-            echo "✅ УСПЕХ: NDK е инсталирано и потвърдено в: $ANDROID_SDK_ROOT/ndk/25.2.9519653"
-          fi
-
-          # Персистиране на променливите
-          echo "ANDROIDNDK=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
-        shell: bash
-
-      # ВЕРИФИКАЦИЯ ПРЕДИ СТАРТ
-      - name: Verify SDK Before Build
-        run: |
-          set -euo pipefail
-          export ANDROID_SDK_ROOT=$HOME/Android/Sdk
-          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
-          
-          echo "=== Проверка на папка platforms ==="
-          ls -la "$ANDROID_SDK_ROOT/platforms" || true
-          
-          echo "=== Проверка на папка NDK ==="
-          ls -la "$ANDROID_SDK_ROOT/ndk/25.2.9519653" | head -n 10 || true
-        shell: bash
-
-      # СТАБИЛНО КОМПИЛИРАНЕ С ПОДРОБЕН ЛОГ (buildozer -v)
-      - name: Build APK with Buildozer
-        env:
-          APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
-          CFLAGS: "-Wno-incompatible-function-pointer-types"
-          ANDROIDSDK: "/home/runner/Android/Sdk"
-          ANDROID_SDK_ROOT: "/home/runner/Android/Sdk"
-          ANDROID_HOME: "/home/runner/Android/Sdk"
-          ANDROIDNDK: "/home/runner/Android/Sdk/ndk/25.2.9519653"
-          ANDROID_NDK_HOME: "/home/runner/Android/Sdk/ndk/25.2.9519653"
-          ANDROIDAPI: "33"
-          ANDROIDMINAPI: "24"
-        run: |
-          export ANDROID_SDK_ROOT=$HOME/Android/Sdk
-          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH"
-          
-          # Стартиране на подробна компилация
-          buildozer -v android debug
-          
-          # Защита против празни бин директории
-          if [ -z "$(ls -A bin/*.apk 2>/dev/null)" ]; then
-            echo "🚨 КРИТИЧНА ГРЕШКА: Няма генериран APK файл в папка bin/!"
-            exit 1
-          else
-            echo "✅ УСПЕХ: APK файлът беше генериран успешно!"
-          fi
-        shell: bash
-          
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: package
-          path: bin/*.apk
+            MAX_RETRIES=3
+            RETRY_COUNT=0
