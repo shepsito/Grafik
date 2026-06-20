@@ -59,7 +59,7 @@ jobs:
           path: .buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}-v5
 
-      # ИНСТАЛИРАНЕ НА SDK И НАПЪЛНО ВЪЗСТАНОВЕН FALLBACK ЗА NDK
+      # ИНСТАЛИРАНЕ НА SDK И НАПЪЛНО КОРЕКТИРАН FALLBACK СЪС ЗАДЪЛЖИТЕЛНИТЕ СИНТАКТИЧНИ ЗАГРАЖДЕНИЯ
       - name: Install Android SDK & NDK (API 33, NDK r25)
         run: |
           set -euo pipefail
@@ -82,9 +82,9 @@ jobs:
           yes | $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --licenses
           set -o pipefail
 
-          # Инсталиране на леките компоненти през sdkmanager
+          # ФИКСИРАНО: Премахнато е отрязването с [...], кавичките са затворени коректно
           echo "Стартирам инсталация през sdkmanager..."
-          $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --verbose "platform-tools" "platforms;android-33" "build-tools;33.0.2" || echo "Предупреждение: Срив при базовите пакети."
+          $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --verbose "platform-tools" "platforms;android-33" "build-tools;33.0.2" || echo "Warning: Issue with base components, continuing with NDK fallback..."
 
           # ПРОВЕРКА И КРИТИЧЕН РЪЧЕН FALLBACK ЗА NDK С RETRY
           NDK_DIR="$ANDROID_SDK_ROOT/ndk/25.2.9519653"
@@ -102,3 +102,77 @@ jobs:
                   echo "✅ NDK архивът е свален и верифициран успешно!"
                   break
                 else
+                  echo "⚠️ Сваленият ZIP файл е повреден/непълен, опитвам отново..."
+                  rm -f /tmp/android-ndk.zip
+                  RETRY_COUNT=$((RETRY_COUNT + 1))
+                fi
+              else
+                echo "⚠️ Даунлоудът пропадна, следва нов опит..."
+                RETRY_COUNT=$((RETRY_COUNT + 1))
+              fi
+            done
+            
+            if [ ! -f /tmp/android-ndk.zip ]; then
+              echo "❌ Неуспешен даунлоуд на NDK след $MAX_RETRIES опита."
+              exit 1
+            fi
+            
+            mkdir -p /tmp/ndk_extracted
+            unzip -q /tmp/android-ndk.zip -d /tmp/ndk_extracted
+            
+            NDK_FOLDER=$(ls -d /tmp/ndk_extracted/android-ndk* | head -1)
+            mkdir -p "$ANDROID_SDK_ROOT/ndk"
+            mv "$NDK_FOLDER" "$NDK_DIR"
+            rm -f /tmp/android-ndk.zip
+            echo "✅ NDK инсталиран успешно от резервния даунлоуд!"
+          fi
+
+          # Експортиране на променливите на средата
+          echo "Setting NDK environment variables..."
+          echo "ANDROIDNDK=$NDK_DIR" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$NDK_DIR" >> $GITHUB_ENV
+          echo "✅ Android SDK & NDK installation complete!"
+        shell: bash
+
+      # ВЕРИФИКАЦИЯ ПРЕДИ СТАРТ
+      - name: Verify SDK Before Build
+        run: |
+          set -euo pipefail
+          export ANDROID_SDK_ROOT=$HOME/Android/Sdk
+          echo "=== Налични платформи ==="
+          ls -la "$ANDROID_SDK_ROOT/platforms" || true
+          echo "=== Структура на NDK ==="
+          ls -la "$ANDROID_SDK_ROOT/ndk/25.2.9519653" | head -n 5 || true
+        shell: bash
+
+      # СТАБИЛНО КОМПИЛИРАНЕ С ПОДРОБЕН ЛОГ
+      - name: Build APK with Buildozer
+        env:
+          APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
+          CFLAGS: "-Wno-incompatible-function-pointer-types"
+          ANDROIDSDK: "/home/runner/Android/Sdk"
+          ANDROID_SDK_ROOT: "/home/runner/Android/Sdk"
+          ANDROID_HOME: "/home/runner/Android/Sdk"
+          ANDROIDNDK: "/home/runner/Android/Sdk/ndk/25.2.9519653"
+          ANDROID_NDK_HOME: "/home/runner/Android/Sdk/ndk/25.2.9519653"
+          ANDROIDAPI: "33"
+          ANDROIDMINAPI: "24"
+        run: |
+          export ANDROID_SDK_ROOT=$HOME/Android/Sdk
+          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH"
+          
+          buildozer -v android debug
+          
+          if [ -z "$(ls -A bin/*.apk 2>/dev/null)" ]; then
+            echo "🚨 КРИТИЧНА ГРЕШКА: Папка bin/ е празна. Buildozer не генерира APK!"
+            exit 1
+          else
+            echo "✅ УСПЕХ: APK файлът беше намерен!"
+          fi
+        shell: bash
+          
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: bin/*.apk
