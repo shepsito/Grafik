@@ -17,7 +17,7 @@ jobs:
       - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev tk-dev libgdbm-compat-dev libreoffice-dev libmpdec-dev bluez libbluetooth-dev
+          sudo apt-get install -y git zip unzip python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev tk-dev libgdbm-compat-dev libreoffice-dev libmpdec-dev bluez libbluetooth-dev libxml2-dev libxslt1-dev
 
       - name: Install Buildozer and Cython
         run: |
@@ -33,13 +33,10 @@ jobs:
           echo 'title = GrafikProverki' >> buildozer.spec
           echo 'package.name = grafikapp' >> buildozer.spec
           echo 'package.domain = org.twoman' >> buildozer.spec
-          echo 'source.dir = '.' >> buildozer.spec
+          echo 'source.dir = .' >> buildozer.spec
           echo 'source.include_exts = py,png,jpg,kv,atlas' >> buildozer.spec
           echo 'version = 1.0' >> buildozer.spec
-          
-          # ФИКС ЗА ВЕРСИИТЕ: Махаме закованите пачове (==3.11.0), за да не гърми p4a рецептата
           echo 'requirements = python3, kivy, pillow, pyjnius' >> buildozer.spec
-          
           echo 'orientation = portrait' >> buildozer.spec
           echo 'fullscreen = 1' >> buildozer.spec
           echo 'android.archs = arm64-v8a' >> buildozer.spec
@@ -64,7 +61,6 @@ jobs:
             rm android-ndk-r25.2.9519653-linux.zip
           fi
 
-      # СУПЕР ДИАГНОСТИКА: Хваща грешката в дълбоките Android лог файлове
       - name: Build APK with Buildozer
         env:
           APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
