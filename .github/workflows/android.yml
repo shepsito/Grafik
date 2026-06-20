@@ -48,7 +48,7 @@ jobs:
           echo 'android.permissions = POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK, RECEIVE_BOOT_COMPLETED' >> buildozer.spec
           echo 'services = mynotificationservice:service.py' >> buildozer.spec
           
-          # Синхронизирана NDK версия
+          # Версия на NDK (синхронизирана с пакета в sdkmanager)
           echo 'android.ndk = 25.2.9519653' >> buildozer.spec
           echo '[buildozer]' >> buildozer.spec
           echo 'log_level = 2' >> buildozer.spec
@@ -57,9 +57,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .buildozer
-          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}-v5
+          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}-v6
 
-      # ИНСТАЛИРАНЕ НА SDK И НАПЪЛНО КОРЕКТИРАН FALLBACK СЪС ЗАДЪЛЖИТЕЛНИТЕ СИНТАКТИЧНИ ЗАГРАЖДЕНИЯ
+      # ИНСТАЛИРАНЕ НА SDK И СТАБИЛНО ИНСТАЛИРАНЕ НА NDK ПРЕЗ SDKMANAGER С RETRY ЛОГИКА
       - name: Install Android SDK & NDK (API 33, NDK r25)
         run: |
           set -euo pipefail
@@ -76,73 +76,61 @@ jobs:
           rm -rf /tmp/extracted_tools /tmp/cmdline-tools.zip
 
           SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          chmod +x "$SDKMANAGER" || true
 
           # Приемане на лицензи без чупене от SIGPIPE
           set +o pipefail
           yes | $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --licenses
           set -o pipefail
 
-          # ФИКСИРАНО: Премахнато е отрязването с [...], кавичките са затворени коректно
-          echo "Стартирам инсталация през sdkmanager..."
-          $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --verbose "platform-tools" "platforms;android-33" "build-tools;33.0.2" || echo "Warning: Issue with base components, continuing with NDK fallback..."
+          # Инсталиране на базовите компоненти през sdkmanager
+          echo "Инсталирам платформени инструменти и API 33..."
+          $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --verbose "platform-tools" "platforms;android-33" "build-tools;33.0.2" || echo "Предупреждение: Проблем при базовите компоненти."
 
-          # ПРОВЕРКА И КРИТИЧЕН РЪЧЕН FALLBACK ЗА NDK С RETRY
+          # КОРЕКЦИЯ: Официално инсталиране на NDK през sdkmanager с retry логика (без опасни curl URL адреси)
           NDK_DIR="$ANDROID_SDK_ROOT/ndk/25.2.9519653"
           if [ ! -d "$NDK_DIR" ]; then
-            echo "🚨 Срив в sdkmanager или липсващо NDK! Стартирам алтернативен защитен даунлоуд..."
+            echo "NDK не е намерено на адрес $NDK_DIR — стартирам инсталация през sdkmanager..."
             
             MAX_RETRIES=3
-            RETRY_COUNT=0
-            NDK_URL="https://dl.google.com/android/repository/android-ndk-r25.2.9519653-linux-x86_64.zip"
-            
-            while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-              if curl -L --fail --retry 3 --retry-delay 2 -o /tmp/android-ndk.zip "$NDK_URL"; then
-                # Валидация на ZIP архива преди разархивиране
-                if unzip -t /tmp/android-ndk.zip > /dev/null 2>&1; then
-                  echo "✅ NDK архивът е свален и верифициран успешно!"
-                  break
-                else
-                  echo "⚠️ Сваленият ZIP файл е повреден/непълен, опитвам отново..."
-                  rm -f /tmp/android-ndk.zip
-                  RETRY_COUNT=$((RETRY_COUNT + 1))
-                fi
+            RETRY=0
+            until [ $RETRY -ge $MAX_RETRIES ]
+            do
+              if $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --verbose "ndk;25.2.9519653"; then
+                echo "✅ NDK беше успешно инсталирано през sdkmanager!"
+                break
               else
-                echo "⚠️ Даунлоудът пропадна, следва нов опит..."
-                RETRY_COUNT=$((RETRY_COUNT + 1))
+                echo "⚠️ Инсталацията на NDK пропадна (опит $((RETRY+1))). Нов опит след 2 секунди..."
+                RETRY=$((RETRY+1))
+                sleep 2
               fi
             done
-            
-            if [ ! -f /tmp/android-ndk.zip ]; then
-              echo "❌ Неуспешен даунлоуд на NDK след $MAX_RETRIES опита."
+
+            # Защита: Ако след 3 опита NDK пак липсва, показваме наличните версии и спираме уъркфлоуа
+            if [ ! -d "$NDK_DIR" ]; then
+              echo "❌ Грешка: Неуспешна инсталация на NDK през sdkmanager след $MAX_RETRIES опита."
+              echo "Списък с наличните NDK пакети в репозиторито:"
+              $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --list | grep ndk || true
               exit 1
             fi
-            
-            mkdir -p /tmp/ndk_extracted
-            unzip -q /tmp/android-ndk.zip -d /tmp/ndk_extracted
-            
-            NDK_FOLDER=$(ls -d /tmp/ndk_extracted/android-ndk* | head -1)
-            mkdir -p "$ANDROID_SDK_ROOT/ndk"
-            mv "$NDK_FOLDER" "$NDK_DIR"
-            rm -f /tmp/android-ndk.zip
-            echo "✅ NDK инсталиран успешно от резервния даунлоуд!"
           fi
 
-          # Експортиране на променливите на средата
+          # Експортиране на проверените променливи на средата
           echo "Setting NDK environment variables..."
           echo "ANDROIDNDK=$NDK_DIR" >> $GITHUB_ENV
           echo "ANDROID_NDK_HOME=$NDK_DIR" >> $GITHUB_ENV
-          echo "✅ Android SDK & NDK installation complete!"
+          echo "✅ Android SDK & NDK инсталацията приключи успешно!"
         shell: bash
 
-      # ВЕРИФИКАЦИЯ ПРЕДИ СТАРТ
-      - name: Verify SDK Before Build
+      # СТЪПКА ЗА ДЕБАГ: Валидация на инсталираните компоненти
+      - name: Debug installed SDK/NDK
         run: |
-          set -euo pipefail
           export ANDROID_SDK_ROOT=$HOME/Android/Sdk
-          echo "=== Налични платформи ==="
-          ls -la "$ANDROID_SDK_ROOT/platforms" || true
-          echo "=== Структура на NDK ==="
-          ls -la "$ANDROID_SDK_ROOT/ndk/25.2.9519653" | head -n 5 || true
+          echo "SDK Root: $ANDROID_SDK_ROOT"
+          echo "=== Съдържание на папка NDK ==="
+          ls -la "$ANDROID_SDK_ROOT/ndk" || true
+          echo "=== Съдържание на папка 25.2.9519653 ==="
+          ls -la "$ANDROID_SDK_ROOT/ndk/25.2.9519653" | head -n 10 || true
         shell: bash
 
       # СТАБИЛНО КОМПИЛИРАНЕ С ПОДРОБЕН ЛОГ
@@ -153,26 +141,4 @@ jobs:
           ANDROIDSDK: "/home/runner/Android/Sdk"
           ANDROID_SDK_ROOT: "/home/runner/Android/Sdk"
           ANDROID_HOME: "/home/runner/Android/Sdk"
-          ANDROIDNDK: "/home/runner/Android/Sdk/ndk/25.2.9519653"
-          ANDROID_NDK_HOME: "/home/runner/Android/Sdk/ndk/25.2.9519653"
-          ANDROIDAPI: "33"
-          ANDROIDMINAPI: "24"
-        run: |
-          export ANDROID_SDK_ROOT=$HOME/Android/Sdk
-          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH"
-          
-          buildozer -v android debug
-          
-          if [ -z "$(ls -A bin/*.apk 2>/dev/null)" ]; then
-            echo "🚨 КРИТИЧНА ГРЕШКА: Папка bin/ е празна. Buildozer не генерира APK!"
-            exit 1
-          else
-            echo "✅ УСПЕХ: APK файлът беше намерен!"
-          fi
-        shell: bash
-          
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: package
-          path: bin/*.apk
+          ANDROIDNDK: "/home/runner/Android/Sdk/
