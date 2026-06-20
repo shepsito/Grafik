@@ -36,10 +36,7 @@ jobs:
           echo 'source.dir = .' >> buildozer.spec
           echo 'source.include_exts = py,png,jpg,kv,atlas' >> buildozer.spec
           echo 'version = 1.0' >> buildozer.spec
-          
-          # Requirements
           echo 'requirements = python3==3.11.0, hostpython3==3.11.0, kivy==2.3.0, pillow==10.2.0, pyjnius' >> buildozer.spec
-          
           echo 'orientation = portrait' >> buildozer.spec
           echo 'fullscreen = 1' >> buildozer.spec
           echo 'android.archs = arm64-v8a' >> buildozer.spec
@@ -47,8 +44,6 @@ jobs:
           echo 'android.minapi = 24' >> buildozer.spec
           echo 'android.permissions = POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK, RECEIVE_BOOT_COMPLETED' >> buildozer.spec
           echo 'services = mynotificationservice:service.py' >> buildozer.spec
-          
-          # Версия на NDK (синхронизирана с пакета в sdkmanager)
           echo 'android.ndk = 25.2.9519653' >> buildozer.spec
           echo '[buildozer]' >> buildozer.spec
           echo 'log_level = 2' >> buildozer.spec
@@ -59,7 +54,6 @@ jobs:
           path: .buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}-v6
 
-      # ИНСТАЛИРАНЕ НА SDK И СТАБИЛНО ИНСТАЛИРАНЕ НА NDK ПРЕЗ SDKMANAGER С RETRY ЛОГИКА
       - name: Install Android SDK & NDK (API 33, NDK r25)
         run: |
           set -euo pipefail
@@ -78,16 +72,13 @@ jobs:
           SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
           chmod +x "$SDKMANAGER" || true
 
-          # Приемане на лицензи без чупене от SIGPIPE
           set +o pipefail
           yes | $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --licenses
           set -o pipefail
 
-          # Инсталиране на базовите компоненти през sdkmanager
           echo "Инсталирам платформени инструменти и API 33..."
           $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --verbose "platform-tools" "platforms;android-33" "build-tools;33.0.2" || echo "Предупреждение: Проблем при базовите компоненти."
 
-          # Официално инсталиране на NDK през sdkmanager с retry логика
           NDK_DIR="$ANDROID_SDK_ROOT/ndk/25.2.9519653"
           if [ ! -d "$NDK_DIR" ]; then
             echo "NDK не е намерено на адрес $NDK_DIR — стартирам инсталация през sdkmanager..."
@@ -106,7 +97,6 @@ jobs:
               fi
             done
 
-            # Защита: Ако след 3 опита NDK пак липсва, показваме наличните версии и спираме уъркфлоуа
             if [ ! -d "$NDK_DIR" ]; then
               echo "❌ Грешка: Неуспешна инсталация на NDK през sdkmanager след $MAX_RETRIES опита."
               echo "Списък с наличните NDK пакети в репозиторито:"
@@ -115,9 +105,6 @@ jobs:
             fi
           fi
 
-          # Експортиране на проверените променливи на средата
           echo "Setting NDK environment variables..."
           echo "ANDROIDNDK=$NDK_DIR" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=$NDK_DIR" >> $GITHUB_ENV
-          echo "✅ Android SDK & NDK инсталацията приключи успешно!"
-        shell:
+          echo "ANDROID_NDK_HOME=$NDK_DIR" >> $GITHUB
