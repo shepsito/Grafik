@@ -48,21 +48,25 @@ jobs:
           echo '[buildozer]' >> buildozer.spec
           echo 'log_level = 2' >> buildozer.spec
 
-      - name: Cache Buildozer global directory
-        uses: actions/cache@v4
-        with:
-          path: .buildozer
-          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}-v3
-
-      # СТАБИЛНО АВТОМАТИЧНО ИНСТАЛИРАНЕ НА SDK БЕЗ МРЕЖОВИ СРИВОВЕ
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+
+      # ФИКС: Ръчно и сигурно изтегляне на NDK (Решение №2), за да се избегне сривът на Buildozer
+      - name: Download Android NDK
+        run: |
+          mkdir -p $HOME/.buildozer/android/platform
+          cd $HOME/.buildozer/android/platform
+          if [ ! -d "android-ndk-r25.2.9519653" ]; then
+            wget -q https://dl.google.com/android/repository/android-ndk-r25.2.9519653-linux.zip
+            unzip -q android-ndk-r25.2.9519653-linux.zip
+            rm android-ndk-r25.2.9519653-linux.zip
+          fi
 
       - name: Build APK with Buildozer
         env:
           APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
           CFLAGS: "-Wno-incompatible-function-pointer-types"
-          BUILDOZER_DOWNLOAD_TIMEOUT: "600"
+          BUILDOZER_DOWNLOAD_TIMEOUT: "900"
         run: |
           buildozer -v android debug
 
