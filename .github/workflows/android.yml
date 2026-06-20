@@ -48,85 +48,18 @@ jobs:
           echo '[buildozer]' >> buildozer.spec
           echo 'log_level = 2' >> buildozer.spec
 
-      - name: Cache Buildozer global directory
-        uses: actions/cache@v4
-        with:
-          path: .buildozer
-          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}-v6
-
-      - name: Install Android SDK & NDK (API 33, NDK r25)
-        run: |
-          set -euo pipefail
-          export ANDROID_SDK_ROOT="$HOME/Android/Sdk"
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          
-          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
-          curl -sS -o /tmp/cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-          unzip -q /tmp/cmdline-tools.zip -d /tmp/extracted_tools
-          
-          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
-          cp -r /tmp/extracted_tools/cmdline-tools/* "$ANDROID_SDK_ROOT/cmdline-tools/latest/"
-          rm -rf /tmp/extracted_tools /tmp/cmdline-tools.zip
-
-          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
-          chmod +x "$SDKMANAGER" || true
-
-          set +o pipefail
-          yes | $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --licenses
-          set -o pipefail
-
-          echo "Инсталирам платформени инструменти и API 33..."
-          $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --verbose "platform-tools" "platforms;android-33" "build-tools;33.0.2" || echo "Предупреждение: Проблем при базовите компоненти."
-
-          NDK_DIR="$ANDROID_SDK_ROOT/ndk/25.2.9519653"
-          if [ ! -d "$NDK_DIR" ]; then
-            echo "NDK не е намерено на адрес $NDK_DIR — стартирам инсталация през sdkmanager..."
-            
-            MAX_RETRIES=3
-            RETRY=0
-            until [ $RETRY -ge $MAX_RETRIES ]
-            do
-              if $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --verbose "ndk;25.2.9519653"; then
-                echo "✅ NDK беше успешно инсталирано през sdkmanager!"
-                break
-              else
-                echo "⚠️ Инсталацията на NDK пропадна (опит $((RETRY+1))). Нов опит след 2 секунди..."
-                RETRY=$((RETRY+1))
-                sleep 2
-              fi
-            done
-
-            if [ ! -d "$NDK_DIR" ]; then
-              echo "❌ Грешка: Неуспешна инсталация на NDK през sdkmanager след $MAX_RETRIES опита."
-              echo "Списък с наличните NDK пакети в репозиторито:"
-              $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --list | grep ndk || true
-              exit 1
-            fi
-          fi
-
-          echo "Setting NDK environment variables..."
-          echo "ANDROIDNDK=$NDK_DIR" >> $GITHUB_ENV
-          # ФИКСИРАНО: Коректно насочване към $GITHUB_ENV, предотвратяващо unbound variable грешка
-          echo "ANDROID_NDK_HOME=$NDK_DIR" >> $GITHUB_ENV
-          echo "✅ Android SDK & NDK инсталацията приключи успешно!"
-        shell: bash
-
-      - name: Debug installed SDK/NDK
-        run: |
-          export ANDROID_SDK_ROOT=$HOME/Android/Sdk
-          echo "SDK Root: $ANDROID_SDK_ROOT"
-          echo "=== Съдържание на папка NDK ==="
-          ls -la "$ANDROID_SDK_ROOT/ndk" || true
-          echo "=== Съдържание на папка 25.2.9519653 ==="
-          ls -la "$ANDROID_SDK_ROOT/ndk/25.2.9519653" | head -n 10 || true
-        shell: bash
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
       - name: Build APK with Buildozer
         env:
           APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
           CFLAGS: "-Wno-incompatible-function-pointer-types"
-          ANDROIDSDK: "/home/runner/Android/Sdk"
-          ANDROID_SDK_ROOT: "/home/runner/Android/Sdk"
-          ANDROID_HOME: "/home/runner/Android/Sdk"
-          ANDROIDNDK: "/home/runner
+        run: |
+          buildozer -v android debug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: bin/*.apk
