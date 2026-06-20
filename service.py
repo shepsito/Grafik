@@ -89,7 +89,7 @@ def generate_yearly_schedule(year):
         if current_day == 18:
             events.append((current, "🚨 Вентилни отводи", "Вентилни отводи 1 и 3 ТП", "Отчитане на -вентилни отводи-НСЕО ОЕОиСКУ", shift))
         if current_day == 1:
-            events.append((current, "🚨 Ел.двигатели 6кВ", "Ел.двигатели 6кВ", "Измерване съпротивлението на изолацията на ел.двиг.6кВ.-ПВТ в резерв,1и 2ППП-НСЕО ОЕОиСКУ", "Смяна 1"))
+            events.append((current, "🚨 Ел.двигатели 6кВ", "Ел.двигатели 6кВ", "Измерване съпротивлението на isoлацията на ел.двиг.6кВ.-ПВТ в резерв,1и 2ППП-НСЕО ОЕОиСКУ", "Смяна 1"))
         if current_month in [1, 4, 7, 10] and monday_week == 1:
             events.append((current, "🚨 Проверка ДГ-А", "ДГ-A", "Ф.И. на автономен товар не по малко от 60мин.-НСЕО ОЕОиСКУ", "Смяна 2"))
         if current_month in [1, 4, 7, 10] and monday_week == 2:
@@ -120,31 +120,33 @@ def send_silent_background_alert(title, message):
     try:
         PythonService = autoclass('org.kivy.android.PythonService')
         Context = autoclass('android.content.Context')
+        Notification = autoclass('android.app.Notification')  # Добавено за приоритети
         NotificationManager = autoclass('android.app.NotificationManager')
         NotificationChannel = autoclass('android.app.NotificationChannel')
         NotificationBuilder = autoclass('android.app.Notification$Builder')
         RingtoneManager = autoclass('android.media.RingtoneManager')
-        AudioAttributes = autoclass('android.media.AudioAttributes')
         AudioAttributesBuilder = autoclass('android.media.AudioAttributes$Builder')
 
         service = PythonService.mService
         context = service.getApplicationContext()
         notification_manager = service.getSystemService(Context.NOTIFICATION_SERVICE)
 
-        channel_id = "grafik_background_channel"
+        channel_id = "grafik_background_channel_v2"  # Нов канал за принудително опресняване в Android
         channel_name = "Автоматични Известия"
         default_sound_uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
         channel = notification_manager.getNotificationChannel(channel_id)
         if channel is None:
+            # Слагаме IMPORTANCE_HIGH за визуално изскачане
             channel = NotificationChannel(channel_id, channel_name, NotificationManager.IMPORTANCE_HIGH)
             channel.enableLights(True)
             channel.enableVibration(True)
+            channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC)
             
-            # Корекция на импортите на константи за AudioAttributes
+            # Настройка на аудио атрибутите за звука
             audio_attributes = AudioAttributesBuilder() \
-                .setUsage(AudioAttributes.USAGE_NOTIFICATION) \
-                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION) \
+                .setUsage(10) \
+                .setContentType(4) \
                 .build()
             channel.setSound(default_sound_uri, audio_attributes)
             notification_manager.createNotificationChannel(channel)
@@ -152,10 +154,16 @@ def send_silent_background_alert(title, message):
         builder = NotificationBuilder(context, channel_id)
         builder.setContentTitle(title)
         builder.setContentText(message)
-        builder.setSmallIcon(context.getApplicationInfo().icon)
+        
+        # СИГУРЕН ФИКС ЗА ИКОНАТА: Използваме системна Android икона, за да избегнем краш
+        android_r_drawable = autoclass('android.R$drawable')
+        builder.setSmallIcon(android_r_drawable.ic_dialog_alert)
+        
         builder.setAutoCancel(True)
         builder.setSound(default_sound_uri)
-        builder.setPriority(NotificationManager.IMPORTANCE_HIGH)
+        
+        # КОРИГИРАНО: Задаваме PRIORITY_HIGH за изскачане (балонче) на екрана
+        builder.setPriority(Notification.PRIORITY_HIGH)
 
         notification_manager.notify(int(time.time()) % 100000, builder.build())
     except Exception as e:
@@ -169,7 +177,6 @@ def check_and_notify():
         if event_date.date() == now.date():
             target_hour = 23 if shift == "Смяна 1" else 7 if shift == "Смяна 2" else 15 if shift == "Смяна 3" else None
             
-            # Проверка за съвпадение на часа
             if target_hour is not None and now.hour == target_hour:
                 send_silent_background_alert(
                     f"🚨 СЪБИТИЕ СЕГА: {title}",
