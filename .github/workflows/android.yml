@@ -51,7 +51,6 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # КОРИГИРАНО: Сваляме NDK в точната директория на текущия runner потребител
       - name: Download Android NDK
         run: |
           mkdir -p /home/runner/.buildozer/android/platform
@@ -62,7 +61,7 @@ jobs:
             rm android-ndk-r25.2.9519653-linux.zip
           fi
 
-      # ФИКС ЗА КЕША & ГРЕШКА 8: Разширено логване и прихващане на скрити съобщения
+      # ИНТЕГРИРАН ТОТАЛЕН ДИАГНОСТИЧЕН ЛОГ (Показва всичко при грешка)
       - name: Build APK with Buildozer
         env:
           APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
@@ -70,10 +69,12 @@ jobs:
           BUILDOZER_DOWNLOAD_TIMEOUT: "900"
         run: |
           buildozer -v android debug 2>&1 | tee build.log
-          if [ ${PIPESTATUS[0]} -ne 0 ]; then
-            echo "🚨 Билдът пропадна! Ето последните 150 реда от реалната грешка:"
-            tail -150 build.log
-            exit 1
+          BUILD_EXIT_CODE=${PIPESTATUS[0]}
+          if [ $BUILD_EXIT_CODE -ne 0 ]; then
+            echo "🚨 Build failed with exit code: $BUILD_EXIT_CODE"
+            echo "Full build log:"
+            cat build.log
+            exit $BUILD_EXIT_CODE
           fi
 
       - name: Upload APK Artifact
