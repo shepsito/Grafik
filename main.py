@@ -9,7 +9,7 @@ from kivy.clock import Clock
 from kivy.graphics import Color, Rectangle
 from kivy.utils import platform
 
-# Интегрираме функциите за логика (същите като в service.py за визуализация)
+# Интегрираме функциите за логика
 from service import generate_yearly_schedule
 
 class NotificationApp(App):
@@ -77,7 +77,6 @@ class NotificationApp(App):
     def _update_rect2(self, instance, value): self.rect2.pos = instance.pos; self.rect2.size = instance.size
 
     def start_android_clock_monitoring(self):
-        # Нативен Android код, който регистрира скрития service.py в системния календар/будилник
         try:
             from jnius import autoclass
             PythonActivity = autoclass('org.kivy.android.PythonActivity')
@@ -85,24 +84,20 @@ class NotificationApp(App):
             PendingIntent = autoclass('android.app.PendingIntent')
             AlarmManager = autoclass('android.app.AlarmManager')
             System = autoclass('java.lang.System')
+            Context = autoclass('android.content.Context')
 
             activity = PythonActivity.mActivity
             context = activity.getApplicationContext()
 
-            # Свързваме се с Java класа на нашата фонова услуга
             service_intent = Intent(context, autoclass('org.kivy.android.PythonService'))
             service_intent.putExtra('serviceEntrypoint', 'service.py')
             service_intent.putExtra('serviceName', 'MyNotificationService')
 
-            # Създаваме PendingIntent за задействане на алармата
-            # FLAG_UPDATE_CURRENT = 134217728
-            pending_intent = PendingIntent.getService(context, 0, service_intent, 134217728)
+            pending_intent = PendingIntent.getService(context, 0, service_intent, 201326592)
             alarm_manager = activity.getSystemService(Context.ALARM_SERVICE)
 
-            # Настройваме Android да събужда услугата на всеки 1 час (3600000 милисекунди)
-            # за да проверява за настъпила смяна, без значение дали телефонът спи или е затворен
             interval = 3600000 
-            trigger_at = System.currentTimeMillis() + 5000 # Първо стартиране след 5 секунди
+            trigger_at = System.currentTimeMillis() + 5000 
 
             alarm_manager.setRepeating(AlarmManager.RTC_WAKEUP, trigger_at, interval, pending_intent)
         except Exception as e:
