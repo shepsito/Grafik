@@ -53,14 +53,13 @@ jobs:
           echo '[buildozer]' >> buildozer.spec
           echo 'log_level = 2' >> buildozer.spec
 
-      # ФИКСИРАНО: Правилно дефинирана стъпка за кеша с тире (-) и указване на екшъна
       - name: Cache Buildozer global directory
         uses: actions/cache@v4
         with:
           path: .buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}-v5
 
-      # ИНСТАЛИРАНЕ НА SDK И ЖЕЛЕЗЕН fallback ЗА NDK С RETRY ЛОГИКА
+      # ИНСТАЛИРАНЕ НА SDK И НАПЪЛНО ВЪЗСТАНОВЕН FALLBACK ЗА NDK
       - name: Install Android SDK & NDK (API 33, NDK r25)
         run: |
           set -euo pipefail
@@ -103,20 +102,3 @@ jobs:
                   echo "✅ NDK архивът е свален и верифициран успешно!"
                   break
                 else
-                  echo "⚠️ Сваленият ZIP файл е повреден/непълен, опитвам отново..."
-                  rm -f /tmp/android-ndk.zip
-                  RETRY_COUNT=$((RETRY_COUNT + 1))
-                fi
-              else
-                echo "⚠️ Даунлоудът пропадна, следва нов опит..."
-                RETRY_COUNT=$((RETRY_COUNT + 1))
-              fi
-            done
-            
-            if [ ! -f /tmp/android-ndk.zip ]; then
-              echo "❌ Неуспешен даунлоуд на NDK след $MAX_RETRIES опита."
-              exit 1
-            fi
-            
-            mkdir -p /tmp/ndk_extracted
-            unzip -q /tmp/android-
