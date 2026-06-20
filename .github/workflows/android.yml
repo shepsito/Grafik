@@ -33,10 +33,13 @@ jobs:
           echo 'title = GrafikProverki' >> buildozer.spec
           echo 'package.name = grafikapp' >> buildozer.spec
           echo 'package.domain = org.twoman' >> buildozer.spec
-          echo 'source.dir = .' >> buildozer.spec
+          echo 'source.dir = '.' >> buildozer.spec
           echo 'source.include_exts = py,png,jpg,kv,atlas' >> buildozer.spec
           echo 'version = 1.0' >> buildozer.spec
-          echo 'requirements = python3==3.11.0, hostpython3==3.11.0, kivy==2.3.0, pillow==10.2.0, pyjnius' >> buildozer.spec
+          
+          # ФИКС ЗА ВЕРСИИТЕ: Махаме закованите пачове (==3.11.0), за да не гърми p4a рецептата
+          echo 'requirements = python3, kivy, pillow, pyjnius' >> buildozer.spec
+          
           echo 'orientation = portrait' >> buildozer.spec
           echo 'fullscreen = 1' >> buildozer.spec
           echo 'android.archs = arm64-v8a' >> buildozer.spec
@@ -61,7 +64,7 @@ jobs:
             rm android-ndk-r25.2.9519653-linux.zip
           fi
 
-      # ИНТЕГРИРАН ТОТАЛЕН ДИАГНОСТИЧЕН ЛОГ (Показва всичко при грешка)
+      # СУПЕР ДИАГНОСТИКА: Хваща грешката в дълбоките Android лог файлове
       - name: Build APK with Buildozer
         env:
           APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
@@ -72,8 +75,10 @@ jobs:
           BUILD_EXIT_CODE=${PIPESTATUS[0]}
           if [ $BUILD_EXIT_CODE -ne 0 ]; then
             echo "🚨 Build failed with exit code: $BUILD_EXIT_CODE"
-            echo "Full build log:"
-            cat build.log
+            echo "=== Last 100 lines of build log ==="
+            tail -n 100 build.log
+            echo "=== Checking hidden .buildozer log files ==="
+            find /home/runner/.buildozer -type f -name "*.log" -exec echo "--- Log file: {} ---" \; -exec tail -n 30 {} \; 2>/dev/null || true
             exit $BUILD_EXIT_CODE
           fi
 
