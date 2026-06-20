@@ -9,10 +9,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
+        uses: android-actions/setup-android@v3
 
       - name: Install System Dependencies
         run: |
@@ -45,11 +42,9 @@ jobs:
           echo 'android.permissions = POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK, RECEIVE_BOOT_COMPLETED' >> buildozer.spec
           echo 'services = mynotificationservice:service.py' >> buildozer.spec
           echo 'android.ndk = 25.2.9519653' >> buildozer.spec
+          echo 'android.gradle_dependencies = androidx.appcompat:appcompat:1.6.1' >> buildozer.spec
           echo '[buildozer]' >> buildozer.spec
           echo 'log_level = 2' >> buildozer.spec
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
 
       - name: Download Android NDK
         run: |
@@ -59,6 +54,15 @@ jobs:
             wget -q https://dl.google.com/android/repository/android-ndk-r25.2.9519653-linux.zip
             unzip -q android-ndk-r25.2.9519653-linux.zip
             rm android-ndk-r25.2.9519653-linux.zip
+          fi
+
+      - name: Verify NDK Setup
+        run: |
+          if [ -d "/home/runner/.buildozer/android/platform/android-ndk-r25.2.9519653" ]; then
+            echo "✓ NDK намерен."
+          else
+            echo "✗ NDK липсва!"
+            exit 1
           fi
 
       - name: Build APK with Buildozer
@@ -71,10 +75,10 @@ jobs:
           BUILD_EXIT_CODE=${PIPESTATUS[0]}
           if [ $BUILD_EXIT_CODE -ne 0 ]; then
             echo "🚨 Build failed with exit code: $BUILD_EXIT_CODE"
-            echo "=== Last 100 lines of build log ==="
-            tail -n 100 build.log
-            echo "=== Checking hidden .buildozer log files ==="
-            find /home/runner/.buildozer -type f -name "*.log" -exec echo "--- Log file: {} ---" \; -exec tail -n 30 {} \; 2>/dev/null || true
+            echo "=== FULL BUILD LOG ==="
+            cat build.log
+            echo "=== BUILDER LOGS ==="
+            find /home/runner/.buildozer -type f -name "*.log" -print0 | xargs -0 tail -n 50 2>/dev/null || true
             exit $BUILD_EXIT_CODE
           fi
 
