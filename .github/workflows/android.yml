@@ -52,7 +52,7 @@ jobs:
           # Само малки букви за името на услугата
           echo 'services = mynotificationservice:service.py' >> buildozer.spec
           
-          # КОРИГИРАНО: Точно съвпадение на NDK версията с инсталираната по-долу
+          # Синхронизирана версия на NDK
           echo 'android.ndk = 25.2.9519653' >> buildozer.spec
           echo '[buildozer]' >> buildozer.spec
           echo 'log_level = 2' >> buildozer.spec
@@ -64,12 +64,12 @@ jobs:
           path: .buildozer
           key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}-v2
 
-      # 1. КОРИГИРАНО И СИНХРОНИЗИРАНО ИНСТАЛИРАНЕ НА SDK & NDK
+      # ИНСТАЛИРАНЕ НА SDK & NDK (С фикс за SIGPIPE / pipefail)
       - name: Install Android SDK & NDK (API 33, NDK r25)
         run: |
           set -euo pipefail
 
-          # Задаване и персистиране на SDK корена за всички следващи стъпки
+          # Задаване и персистиране на SDK корена
           export ANDROID_SDK_ROOT="$HOME/Android/Sdk"
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
@@ -80,61 +80,42 @@ jobs:
           curl -sS -o /tmp/cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
           unzip -q /tmp/cmdline-tools.zip -d /tmp/extracted_tools
           
-          # Сигурно и чисто преместване в canonical структурата 'latest' без счупен синтаксис
+          # Структуриране в папка 'latest'
           mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
           cp -r /tmp/extracted_tools/cmdline-tools/* "$ANDROID_SDK_ROOT/cmdline-tools/latest/"
           rm -rf /tmp/extracted_tools /tmp/cmdline-tools.zip
 
-          # Персистиране на PATH в GITHUB_ENV
-          echo "PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH" >> $GITHUB_ENV
-          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH"
+          # Дефиниране на директния път до sdkmanager
+          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
 
-          # Приемане на лицензи (с улавяне на грешки)
-          yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --licenses || (echo "Грешка при приемане на лицензите" && exit 1)
+          # ФИКС: Изключваме принудително pipefail само за лицензите, за да игнорираме SIGPIPE грешката от 'yes'
+          set +o pipefail
+          yes | $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --licenses
+          set -o pipefail
 
-          # Инсталиране на пакетите с проверка за провал
-          sdkmanager --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653" || (echo "sdkmanager инсталацията пропадна!" && exit 1)
+          # Инсталиране на пакетите с абсолютна пътека
+          $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653" || (echo "sdkmanager инсталацията пропадна!" && exit 1)
         shell: bash
 
-      # 2. ВЕРИФИКАЦИЯ ПРЕДИ СТАРТ
+      # ВЕРИФИКАЦИЯ ПРЕДИ СТАРТ
       - name: Verify SDK Before Build
         run: |
           set -euo pipefail
-          echo "Проверка на състоянието на: $ANDROID_SDK_ROOT"
+          export ANDROID_SDK_ROOT=$HOME/Android/Sdk
+          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
           
           echo "=== Налични платформи в директорията ==="
           ls -la "$ANDROID_SDK_ROOT/platforms" || true
           
           echo "=== Списък с инсталирани компоненти ==="
-          sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --list_installed || true
+          $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --list_installed || true
           
           if [ ! -d "$ANDROID_SDK_ROOT/platforms/android-33" ]; then
-            echo "🚨 КРИТИЧНО: Android API 33 липсва в папка platforms! Опит за принудително доинсталиране..."
-            sdkmanager --sdk_root="$ANDROID_SDK_ROOT" "platforms;android-33" || (echo "Инсталацията на API 33 се провали!" && exit 1)
+            echo "🚨 КРИТИЧНО: Android API 33 липсва! Опит за принудително доинсталиране..."
+            $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" "platforms;android-33" || (echo "Инсталацията на API 33 се провали!" && exit 1)
           else
             echo "✅ Android API 33 е наличен и валидиран!"
           fi
         shell: bash
 
-      # 3. СТАБИЛНО КОМПИЛИРАНЕ
-      - name: Build APK with Buildozer
-        env:
-          APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
-          CFLAGS: "-Wno-incompatible-function-pointer-types"
-          # Пълно съответствие на пътищата за Gradle, p4a и Buildozer
-          ANDROIDSDK: "/home/runner/Android/Sdk"
-          ANDROID_SDK_ROOT: "/home/runner/Android/Sdk"
-          ANDROID_HOME: "/home/runner/Android/Sdk"
-          ANDROIDNDK: "/home/runner/Android/Sdk/ndk/25.2.9519653"
-          ANDROIDAPI: "33"
-          ANDROIDMINAPI: "24"
-        run: |
-          export ANDROID_SDK_ROOT=$HOME/Android/Sdk
-          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH"
-          buildozer android debug
-          
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: package
-          path: bin/*.apk
+      # С
