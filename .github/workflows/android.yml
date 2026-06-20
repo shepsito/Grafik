@@ -53,6 +53,7 @@ jobs:
           echo '[buildozer]' >> buildozer.spec
           echo 'log_level = 2' >> buildozer.spec
 
+      # ФИКСИРАНО: Правилно форматирана и дефинирана стъпка за кеша с тире (-) и указване на екшъна
       - name: Cache Buildozer global directory
         uses: actions/cache@v4
         with:
@@ -87,7 +88,7 @@ jobs:
           echo "Инсталирам платформени инструменти и API 33..."
           $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --verbose "platform-tools" "platforms;android-33" "build-tools;33.0.2" || echo "Предупреждение: Проблем при базовите компоненти."
 
-          # КОРЕКЦИЯ: Официално инсталиране на NDK през sdkmanager с retry логика (без опасни curl URL адреси)
+          # Официално инсталиране на NDK през sdkmanager с retry логика
           NDK_DIR="$ANDROID_SDK_ROOT/ndk/25.2.9519653"
           if [ ! -d "$NDK_DIR" ]; then
             echo "NDK не е намерено на адрес $NDK_DIR — стартирам инсталация през sdkmanager..."
@@ -123,22 +124,4 @@ jobs:
         shell: bash
 
       # СТЪПКА ЗА ДЕБАГ: Валидация на инсталираните компоненти
-      - name: Debug installed SDK/NDK
-        run: |
-          export ANDROID_SDK_ROOT=$HOME/Android/Sdk
-          echo "SDK Root: $ANDROID_SDK_ROOT"
-          echo "=== Съдържание на папка NDK ==="
-          ls -la "$ANDROID_SDK_ROOT/ndk" || true
-          echo "=== Съдържание на папка 25.2.9519653 ==="
-          ls -la "$ANDROID_SDK_ROOT/ndk/25.2.9519653" | head -n 10 || true
-        shell: bash
-
-      # СТАБИЛНО КОМПИЛИРАНЕ С ПОДРОБЕН ЛОГ
-      - name: Build APK with Buildozer
-        env:
-          APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
-          CFLAGS: "-Wno-incompatible-function-pointer-types"
-          ANDROIDSDK: "/home/runner/Android/Sdk"
-          ANDROID_SDK_ROOT: "/home/runner/Android/Sdk"
-          ANDROID_HOME: "/home/runner/Android/Sdk"
-          ANDROIDNDK: "/home/runner/Android/Sdk/
+      -
