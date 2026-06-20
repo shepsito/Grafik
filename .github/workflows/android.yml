@@ -53,7 +53,6 @@ jobs:
           echo '[buildozer]' >> buildozer.spec
           echo 'log_level = 2' >> buildozer.spec
 
-      # ФИКСИРАНО: Правилно форматирана и дефинирана стъпка за кеша с тире (-) и указване на екшъна
       - name: Cache Buildozer global directory
         uses: actions/cache@v4
         with:
@@ -121,7 +120,4 @@ jobs:
           echo "ANDROIDNDK=$NDK_DIR" >> $GITHUB_ENV
           echo "ANDROID_NDK_HOME=$NDK_DIR" >> $GITHUB_ENV
           echo "✅ Android SDK & NDK инсталацията приключи успешно!"
-        shell: bash
-
-      # СТЪПКА ЗА ДЕБАГ: Валидация на инсталираните компоненти
-      -
+        shell:
