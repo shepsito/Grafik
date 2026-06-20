@@ -37,7 +37,7 @@ jobs:
           echo 'source.include_exts = py,png,jpg,kv,atlas' >> buildozer.spec
           echo 'version = 1.0' >> buildozer.spec
           
-          #Requirements: Добавяме pyjnius и махаме plyer (защото работим с чист Android Java API)
+          # Requirements: pyjnius за Java комуникацията
           echo 'requirements = python3==3.11.0, hostpython3==3.11.0, kivy==2.3.0, pillow==10.2.0, pyjnius' >> buildozer.spec
           
           echo 'orientation = portrait' >> buildozer.spec
@@ -46,16 +46,23 @@ jobs:
           echo 'android.api = 33' >> buildozer.spec
           echo 'android.minapi = 24' >> buildozer.spec
           
-          # Разрешения: Добавени са нужните права за будилника, вибрацията, известията и пускане при рестарт
+          # Разрешения: Нужни за известия, будилник, вибрация и стартиране при boot
           echo 'android.permissions = POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK, RECEIVE_BOOT_COMPLETED' >> buildozer.spec
           
-          # СЛУЖБА (SERVICES): Казваме на Buildozer да регистрира service.py като фонов процес
-          echo 'services = MyNotificationService:service.py' >> buildozer.spec
+          # КОРИГИРАНО: Само малки букви за името на услугата, за да съвпадне с org.kivy.android.ServiceMynotificationservice
+          echo 'services = mynotificationservice:service.py' >> buildozer.spec
           
-          # ФИКС ЗА ГРАФИКАТА: NDK 25c
+          # ФИКС ЗА ГРАФИКАТА & NDK
           echo 'android.ndk = 25c' >> buildozer.spec
           echo '[buildozer]' >> buildozer.spec
           echo 'log_level = 2' >> buildozer.spec
+
+      # Опционално, но силно препоръчително кеширане на Buildozer, за да не сваля Android NDK/SDK всеки път (спестява ~10-15 минути)
+      - name: Cache Buildozer global directory
+        uses: actions/cache@v4
+        with:
+          path: .buildozer
+          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
 
       - name: Build APK with Buildozer
         run: |
