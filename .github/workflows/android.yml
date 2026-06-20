@@ -77,28 +77,38 @@ jobs:
           
           # Подреждане в правилната структура за sdkmanager
           mkdir -p $ANDROID_SDK_ROOT/cmdline-tools/latest
-          move $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools/* $ANDROID_SDK_ROOT/cmdline-tools/latest/ || mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools/* $ANDROID_SDK_ROOT/cmdline-tools/latest/
+          mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools/* $ANDROID_SDK_ROOT/cmdline-tools/latest/ || true
 
           export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH"
 
-          # КОРИГИРАНО: Стабилно автоматично приемане на лицензи
+          # Автоматично приемане на лицензи
           yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --licenses > /dev/null 2>&1 || true
 
           # Инсталиране на компонентите: platform-tools, API 33, build-tools и NDK r25c
           sdkmanager --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
-
-          # Експортиране на променливите към средата на GitHub Actions
-          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          echo "ANDROIDSDK=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          echo "ANDROIDNDK=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
-          echo "PATH=$ANDROID_SDK_ROOT/platform-tools:$PATH" >> $GITHUB_ENV
         shell: bash
 
-      # Компилиране с подаване на правилните променливи
+      # НОВА СТЪПКА: Диагностика и верификация на инсталираното SDK
+      - name: Verify Android SDK Installation
+        run: |
+          export ANDROID_SDK_ROOT=$HOME/Android/Sdk
+          echo "=== Проверка на папка platforms ==="
+          ls -la $ANDROID_SDK_ROOT/platforms/ || echo "Директорията platforms не е намерена!"
+          
+          echo "=== Списък с инсталирани пакети от sdkmanager ==="
+          $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --list_installed
+        shell: bash
+
+      # Компилиране с ИСПРАВЕНИТЕ и бетонирани променливи за Buildozer
       - name: Build APK with Buildozer
         env:
           APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
           CFLAGS: "-Wno-incompatible-function-pointer-types"
+          # Подаваме директните пътища, които p4a очаква, сочещи към уъркър директорията
+          ANDROIDSDK: "/home/runner/Android/Sdk"
+          ANDROIDNDK: "/home/runner/Android/Sdk/ndk/25.2.9519653"
+          ANDROIDAPI: "33"
+          ANDROIDMINAPI: "24"
         run: |
           buildozer android debug
           
