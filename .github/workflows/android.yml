@@ -48,6 +48,13 @@ jobs:
           echo '[buildozer]' >> buildozer.spec
           echo 'log_level = 2' >> buildozer.spec
 
+      - name: Cache Buildozer global directory
+        uses: actions/cache@v4
+        with:
+          path: .buildozer
+          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}-v3
+
+      # СТАБИЛНО АВТОМАТИЧНО ИНСТАЛИРАНЕ НА SDK БЕЗ МРЕЖОВИ СРИВОВЕ
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
@@ -55,6 +62,7 @@ jobs:
         env:
           APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
           CFLAGS: "-Wno-incompatible-function-pointer-types"
+          BUILDOZER_DOWNLOAD_TIMEOUT: "600"
         run: |
           buildozer -v android debug
 
