@@ -1,5 +1,5 @@
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 import calendar
 from jnius import autoclass
 from kivy.utils import platform
@@ -52,7 +52,6 @@ def is_last_friday_of_quarter(date):
     return False
 
 def generate_yearly_schedule(year):
-    from datetime import datetime, timedelta
     events = []
     start_date = datetime(year, 1, 1)
     end_date = datetime(year, 12, 31)
@@ -112,6 +111,10 @@ def generate_yearly_schedule(year):
     return events
 
 def send_silent_background_alert(title, message):
+    if platform != 'android':
+        print(f"Фиктивно известие (Не-Android платформа): {title} - {message}")
+        return
+
     try:
         PythonService = autoclass('org.kivy.android.PythonService')
         Context = autoclass('android.content.Context')
@@ -119,6 +122,7 @@ def send_silent_background_alert(title, message):
         NotificationChannel = autoclass('android.app.NotificationChannel')
         NotificationBuilder = autoclass('android.app.Notification$Builder')
         RingtoneManager = autoclass('android.media.RingtoneManager')
+        AudioAttributes = autoclass('android.media.AudioAttributes')
         AudioAttributesBuilder = autoclass('android.media.AudioAttributes$Builder')
 
         service = PythonService.mService
@@ -135,9 +139,10 @@ def send_silent_background_alert(title, message):
             channel.enableLights(True)
             channel.enableVibration(True)
             
+            # Корекция на импортите на константи за AudioAttributes
             audio_attributes = AudioAttributesBuilder() \
-                .setUsage(AudioAttributesBuilder.USAGE_NOTIFICATION) \
-                .setContentType(AudioAttributesBuilder.CONTENT_TYPE_SONIFICATION) \
+                .setUsage(AudioAttributes.USAGE_NOTIFICATION) \
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION) \
                 .build()
             channel.setSound(default_sound_uri, audio_attributes)
             notification_manager.createNotificationChannel(channel)
@@ -152,7 +157,7 @@ def send_silent_background_alert(title, message):
 
         notification_manager.notify(int(time.time()) % 100000, builder.build())
     except Exception as e:
-        print(f"Грешка в селфис известяването: {e}")
+        print(f"Грешка в сервизното известяване: {e}")
 
 def check_and_notify():
     now = datetime.now()
@@ -162,7 +167,7 @@ def check_and_notify():
         if event_date.date() == now.date():
             target_hour = 23 if shift == "Смяна 1" else 7 if shift == "Смяна 2" else 15 if shift == "Смяна 3" else None
             
-            # Тъй като се сервизът се вика на всеки час, проверяваме дали съвпада точния час
+            # Проверка за съвпадение на часа
             if target_hour is not None and now.hour == target_hour:
                 send_silent_background_alert(
                     f"🚨 СЪБИТИЕ СЕГА: {title}",
@@ -170,5 +175,4 @@ def check_and_notify():
                 )
 
 if __name__ == '__main__':
-    # Сервизът се изпълнява веднъж при събуждане от Android, проверява графика и приключва
     check_and_notify()
