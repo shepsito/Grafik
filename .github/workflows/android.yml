@@ -102,20 +102,24 @@ jobs:
           fi
         shell: bash
 
-      # Компилиране с подаване на ДВЕТЕ версии на SDK променливите (за пълна съвместимост)
+      # Компилиране с ТОТАЛНО подсигуряване на всички SDK/PATH променливи
       - name: Build APK with Buildozer
         env:
           APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
           CFLAGS: "-Wno-incompatible-function-pointer-types"
-          
-          # Покриваме изискванията и на Buildozer, и на p4a под капака
           ANDROIDSDK: "/home/runner/Android/Sdk"
           ANDROID_SDK_ROOT: "/home/runner/Android/Sdk"
+          ANDROID_HOME: "/home/runner/Android/Sdk"
           ANDROIDNDK: "/home/runner/Android/Sdk/ndk/25.2.9519653"
           ANDROIDAPI: "33"
           ANDROIDMINAPI: "24"
         run: |
+          export ANDROID_SDK_ROOT=$HOME/Android/Sdk
+          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH"
           buildozer android debug
           
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: bin/*.apk
