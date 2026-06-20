@@ -94,54 +94,66 @@ class NotificationApp(App):
             activity = PythonActivity.mActivity
             context = activity.getApplicationContext()
 
-            # ВАЖНО: Класът се генерира от Buildozer като 'Service' + Името с главна буква
-            # Ако в buildozer.spec услугата се казва 'mynotificationservice':
             ServiceClass = autoclass('org.kivy.android.ServiceMynotificationservice')
             
             service_intent = Intent(context, ServiceClass)
             service_intent.putExtra('serviceEntrypoint', 'service.py')
             service_intent.putExtra('serviceName', 'mynotificationservice')
 
-            # Използване на официалните Java флагове вместо "магически числа"
-            # FLAG_UPDATE_CURRENT (134217728) | FLAG_IMMUTABLE (67108864) = 201326592
             flags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-
             pending_intent = PendingIntent.getService(context, 0, service_intent, flags)
             alarm_manager = activity.getSystemService(Context.ALARM_SERVICE)
 
             interval = 3600000 # 1 час
             trigger_at = System.currentTimeMillis() + 5000 # след 5 секунди
 
-            # Използваме по-сигурен метод за събуждане в Doze Mode
             alarm_manager.setRepeating(AlarmManager.RTC_WAKEUP, trigger_at, interval, pending_intent)
             
         except Exception as e:
             print(f"Неуспешно инжектиране в AlarmManager: {e}")
 
     def update_events_display(self, *args):
-        now = datetime.now()
-        past_event = None
-        next_event = None
+        now = datetime.now().date()
+        
+        # Намираме кои са реалните дати на последното минало и първото предстоящо събитие
+        past_dates = [ev[0].date() for ev in self.yearly_events if ev[0].date() < now]
+        next_dates = [ev[0].date() for ev in self.yearly_events if ev[0].date() >= now]
+        
+        target_past_date = max(past_dates) if past_dates else None
+        target_next_date = min(next_dates) if next_dates else None
 
-        for event_date, title_text, facility_text, check_text, shift_text in self.yearly_events:
-            if event_date.date() < now.date():
-                past_event = (event_date, title_text, facility_text, check_text, shift_text)
-            elif event_date.date() >= now.date() and next_event is None:
-                next_event = (event_date, title_text, facility_text, check_text, shift_text)
+        # Събираме всички събития, които съвпадат с намерените крайни дати
+        matching_past_events = [ev for ev in self.yearly_events if ev[0].date() == target_past_date] if target_past_date else []
+        matching_next_events = [ev for ev in self.yearly_events if ev[0].date() == target_next_date] if target_next_date else []
 
-        if past_event:
-            date_str = past_event[0].strftime('%d.%m.%Y')
-            self.past_header.text = f"Дата: {date_str}  |  {past_event[1]}"
-            self.past_facility.text = f"Съоръжение: {past_event[2]}"
-            self.past_check.text = f"Проверка: {past_event[3]}"
-            self.past_shift.text = f"Смяна: {past_event[4]}"
+        # 1. ОБНОВЯВАНЕ НА МИНАЛИТЕ СЪБИТИЯ
+        if matching_past_events:
+            date_str = target_past_date.strftime('%d.%m.%Y')
+            
+            # Комбинираме заглавията, обектите, проверките и смените, ако са повече от едно събитие
+            titles = " + ".join([ev[1].replace("🚨", "").strip() for ev in matching_past_events])
+            facilities = " | ".join(set([ev[2] for ev in matching_past_events]))
+            checks = " \n ".join([f"• {ev[3]}" for ev in matching_past_events])
+            shifts = ", ".join(set([ev[4] for ev in matching_past_events]))
 
-        if next_event:
-            date_str = next_event[0].strftime('%d.%m.%Y')
-            self.next_header.text = f"Дата: {date_str}  |  {next_event[1]}"
-            self.next_facility.text = f"Съоръжение: {next_event[2]}"
-            self.next_check.text = f"Проверка: {next_event[3]}"
-            self.next_shift.text = f"Смяна: {next_event[4]}"
+            self.past_header.text = f"Дата: {date_str}  |  🚨 {titles}"
+            self.past_facility.text = f"Съоръжение: {facilities}"
+            self.past_check.text = f"Проверки:\n{checks}" if len(matching_past_events) > 1 else f"Проверка: {matching_past_events[0][3]}"
+            self.past_shift.text = f"Смяна: {shifts}"
+
+        # 2. ОБНОВЯВАНЕ НА ПРЕДСТОЯЩИТЕ СЪБИТИЯ (Мулти-поддръжка)
+        if matching_next_events:
+            date_str = target_next_date.strftime('%d.%m.%Y')
+            
+            titles = " + ".join([ev[1].replace("🚨", "").strip() for ev in matching_next_events])
+            facilities = " | ".join(set([ev[2] for ev in matching_next_events]))
+            checks = " \n ".join([f"• {ev[3]}" for ev in matching_next_events])
+            shifts = ", ".join(set([ev[4] for ev in matching_next_events]))
+
+            self.next_header.text = f"Дата: {date_str}  |  🚨 {titles}"
+            self.next_facility.text = f"Съоръжение: {facilities}"
+            self.next_check.text = f"Проверки:\n{checks}" if len(matching_next_events) > 1 else f"Проверка: {matching_next_events[0][3]}"
+            self.next_shift.text = f"Смяна: {shifts}"
 
 if __name__ == "__main__":
     NotificationApp().run()
