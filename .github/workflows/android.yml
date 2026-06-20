@@ -37,7 +37,7 @@ jobs:
           echo 'source.include_exts = py,png,jpg,kv,atlas' >> buildozer.spec
           echo 'version = 1.0' >> buildozer.spec
           
-          # Requirements: pyjnius за Java комуникацията
+          # Requirements
           echo 'requirements = python3==3.11.0, hostpython3==3.11.0, kivy==2.3.0, pillow==10.2.0, pyjnius' >> buildozer.spec
           
           echo 'orientation = portrait' >> buildozer.spec
@@ -45,77 +45,80 @@ jobs:
           echo 'android.archs = arm64-v8a' >> buildozer.spec
           echo 'android.api = 33' >> buildozer.spec
           echo 'android.minapi = 24' >> buildozer.spec
-          
-          # Разрешения: Нужни за известия, будилник, вибрация и стартиране при boot
           echo 'android.permissions = POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK, RECEIVE_BOOT_COMPLETED' >> buildozer.spec
-          
-          # Само малки букви за името на услугата
           echo 'services = mynotificationservice:service.py' >> buildozer.spec
-          
-          # Синхронизирана версия на NDK
           echo 'android.ndk = 25.2.9519653' >> buildozer.spec
           echo '[buildozer]' >> buildozer.spec
           echo 'log_level = 2' >> buildozer.spec
 
-      # Кеширане на Buildozer directory - Използваме -v2 за чисто начало
+      # КОРИГИРАНО: Сменихме на -v3, за да изтрием стария повреден кеш и да започнем начисто!
       - name: Cache Buildozer global directory
         uses: actions/cache@v4
         with:
           path: .buildozer
-          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}-v2
+          key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}-v3
 
-      # ИНСТАЛИРАНЕ НА SDK & NDK (С фикс за SIGPIPE / pipefail)
+      # Инсталиране на SDK & NDK
       - name: Install Android SDK & NDK (API 33, NDK r25)
         run: |
           set -euo pipefail
-
-          # Задаване и персистиране на SDK корена
           export ANDROID_SDK_ROOT="$HOME/Android/Sdk"
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
           
           mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
-
-          # Сваляне на Android command line tools
           curl -sS -o /tmp/cmdline-tools.zip https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
           unzip -q /tmp/cmdline-tools.zip -d /tmp/extracted_tools
           
-          # Структуриране в папка 'latest'
           mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools/latest"
           cp -r /tmp/extracted_tools/cmdline-tools/* "$ANDROID_SDK_ROOT/cmdline-tools/latest/"
           rm -rf /tmp/extracted_tools /tmp/cmdline-tools.zip
 
-          # Дефиниране на директния път до sdkmanager
           SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
 
-          # ФИКС: Изключваме принудително pipefail само за лицензите, за да игнорираме SIGPIPE грешката от 'yes'
           set +o pipefail
           yes | $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --licenses
           set -o pipefail
 
-          # Инсталиране на пакетите с абсолютна пътека
           $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653" || (echo "sdkmanager инсталацията пропадна!" && exit 1)
         shell: bash
 
-      # ВЕРИФИКАЦИЯ ПРЕДИ СТАРТ
       - name: Verify SDK Before Build
         run: |
           set -euo pipefail
           export ANDROID_SDK_ROOT=$HOME/Android/Sdk
           SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
-          
-          echo "=== Налични платформи в директорията ==="
-          ls -la "$ANDROID_SDK_ROOT/platforms" || true
-          
-          echo "=== Списък с инсталирани компоненти ==="
           $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" --list_installed || true
-          
-          if [ ! -d "$ANDROID_SDK_ROOT/platforms/android-33" ]; then
-            echo "🚨 КРИТИЧНО: Android API 33 липсва! Опит за принудително доинсталиране..."
-            $SDKMANAGER --sdk_root="$ANDROID_SDK_ROOT" "platforms;android-33" || (echo "Инсталацията на API 33 се провали!" && exit 1)
-          else
-            echo "✅ Android API 33 е наличен и валидиран!"
-          fi
         shell: bash
 
-      # С
+      # КОРИГИРАНО: Добавена проверка дали APK файлът наистина е създаден
+      - name: Build APK with Buildozer
+        env:
+          APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
+          CFLAGS: "-Wno-incompatible-function-pointer-types"
+          ANDROIDSDK: "/home/runner/Android/Sdk"
+          ANDROID_SDK_ROOT: "/home/runner/Android/Sdk"
+          ANDROID_HOME: "/home/runner/Android/Sdk"
+          ANDROIDNDK: "/home/runner/Android/Sdk/ndk/25.2.9519653"
+          ANDROIDAPI: "33"
+          ANDROIDMINAPI: "24"
+        run: |
+          export ANDROID_SDK_ROOT=$HOME/Android/Sdk
+          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH"
+          
+          # Пускане на реалната компилация
+          buildozer android debug
+          
+          # ЗАЩИТА: Проверяваме дали в папка bin има генериран APK. Ако няма - чупим процеса тук!
+          if [ -z "$(ls -A bin/*.apk 2>/dev/null)" ]; then
+            echo "🚨 КРИТИЧНА ГРЕШКА: Buildozer приключи, но НЕ генерира APK файл в папка bin/!"
+            exit 1
+          else
+            echo "✅ УСПЕХ: APK файлът беше намерен!"
+          fi
+          
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: bin/*.apk
