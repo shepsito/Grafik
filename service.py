@@ -96,9 +96,9 @@ def generate_yearly_schedule(year):
         if current_month in [1, 4, 7, 10] and monday_week == 2:
             events.append((current, "🚨 Проверка ДГ-Б", "ДГ-Б", "Ф.И. на автономен товар не по малко от 60мин.-НСЕО ОЕОиСКУ", shift))
         if current_month in [1, 4, 7, 10] and wednesday_week == 3:
-            events.append((current, "🚨 Проверка 2АДГ-ДСАПП-4", "2АДГ-ДСАПП-4", "Ф.И на аварийното ел.захранване на СПИ"-НСЕО Енергетик ПРАО, shift))
+            events.append((current, "🚨 Проверка 2АДГ-ДСАПП-4", "2АДГ-ДСАПП-4", "Ф.И на аварийното ел.захранване на СПИ-НСЕО Енергетик ПРАО", shift))
         if current_month in [1, 4, 7, 10] and thursday_week == 3:
-            events.append((current, "🚨 Проверка ДГ-КАС", "ДГ-КАС", "Ф.И на аварийното ел.захранване на СПИ"-НСЕО Енергетик ПРАО, shift))
+            events.append((current, "🚨 Проверка ДГ-КАС", "ДГ-КАС", "Ф.И на аварийното ел.захранване на СПИ-НСЕО Енергетик ПРАО", shift))
         if current_month in [6, 12] and monday_week == 3:
             events.append((current, "🚨 Проверка ГРТ-ЦНРД", "ГРТ-ЦНРД", "Изпробване на АВР на ел.захранването-ДИС НСЕО Енергетик ПРАО", shift))
         if current_day == 1:
