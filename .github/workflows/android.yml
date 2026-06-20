@@ -77,28 +77,29 @@ jobs:
           
           # Подреждане в правилната структура за sdkmanager
           mkdir -p $ANDROID_SDK_ROOT/cmdline-tools/latest
-          mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools/* $ANDROID_SDK_ROOT/cmdline-tools/latest/
+          move $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools/* $ANDROID_SDK_ROOT/cmdline-tools/latest/ || mv $ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools/* $ANDROID_SDK_ROOT/cmdline-tools/latest/
 
           export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH"
 
-          # КОРИГИРАНО (Стабилно автоматично приемане на лицензи без Broken pipe грешка):
+          # КОРИГИРАНО: Стабилно автоматично приемане на лицензи
           yes | sdkmanager --sdk_root="$ANDROID_SDK_ROOT" --licenses > /dev/null 2>&1 || true
 
           # Инсталиране на компонентите: platform-tools, API 33, build-tools и NDK r25c
           sdkmanager --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
 
           # Експортиране на променливите към средата на GitHub Actions
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          echo "PATH=$ANDROID_SDK_ROOT/platform-tools:$PATH" >> $GITHUB_ENV
+          echo "ANDROIDSDK=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
           echo "ANDROIDNDK=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
-          echo "ANDROIDAPI=33" >> $GITHUB_ENV
+          echo "PATH=$ANDROID_SDK_ROOT/platform-tools:$PATH" >> $GITHUB_ENV
         shell: bash
 
+      # Компилиране с подаване на правилните променливи
       - name: Build APK with Buildozer
+        env:
+          APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
+          CFLAGS: "-Wno-incompatible-function-pointer-types"
         run: |
-          export APP_ANDROID_ACCEPT_SDK_LICENSE="1"
-          export CFLAGS="-Wno-incompatible-function-pointer-types"
           buildozer android debug
           
       - name: Upload APK Artifact
