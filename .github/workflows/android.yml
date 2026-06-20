@@ -107,4 +107,26 @@ jobs:
 
           echo "Setting NDK environment variables..."
           echo "ANDROIDNDK=$NDK_DIR" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=$NDK_DIR" >> $GITHUB
+          # ФИКСИРАНО: Коректно насочване към $GITHUB_ENV, предотвратяващо unbound variable грешка
+          echo "ANDROID_NDK_HOME=$NDK_DIR" >> $GITHUB_ENV
+          echo "✅ Android SDK & NDK инсталацията приключи успешно!"
+        shell: bash
+
+      - name: Debug installed SDK/NDK
+        run: |
+          export ANDROID_SDK_ROOT=$HOME/Android/Sdk
+          echo "SDK Root: $ANDROID_SDK_ROOT"
+          echo "=== Съдържание на папка NDK ==="
+          ls -la "$ANDROID_SDK_ROOT/ndk" || true
+          echo "=== Съдържание на папка 25.2.9519653 ==="
+          ls -la "$ANDROID_SDK_ROOT/ndk/25.2.9519653" | head -n 10 || true
+        shell: bash
+
+      - name: Build APK with Buildozer
+        env:
+          APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
+          CFLAGS: "-Wno-incompatible-function-pointer-types"
+          ANDROIDSDK: "/home/runner/Android/Sdk"
+          ANDROID_SDK_ROOT: "/home/runner/Android/Sdk"
+          ANDROID_HOME: "/home/runner/Android/Sdk"
+          ANDROIDNDK: "/home/runner
