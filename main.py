@@ -73,8 +73,13 @@ class NotificationApp(App):
         self.update_events_display()
         return main_layout
 
-    def _update_rect1(self, instance, value): self.rect1.pos = instance.pos; self.rect1.size = instance.size
-    def _update_rect2(self, instance, value): self.rect2.pos = instance.pos; self.rect2.size = instance.size
+    def _update_rect1(self, instance, value): 
+        self.rect1.pos = instance.pos
+        self.rect1.size = instance.size
+        
+    def _update_rect2(self, instance, value): 
+        self.rect2.pos = instance.pos
+        self.rect2.size = instance.size
 
     def start_android_clock_monitoring(self):
         try:
@@ -89,17 +94,27 @@ class NotificationApp(App):
             activity = PythonActivity.mActivity
             context = activity.getApplicationContext()
 
-            service_intent = Intent(context, autoclass('org.kivy.android.PythonService'))
+            # ВАЖНО: Класът се генерира от Buildozer като 'Service' + Името с главна буква
+            # Ако в buildozer.spec услугата се казва 'mynotificationservice':
+            ServiceClass = autoclass('org.kivy.android.ServiceMynotificationservice')
+            
+            service_intent = Intent(context, ServiceClass)
             service_intent.putExtra('serviceEntrypoint', 'service.py')
-            service_intent.putExtra('serviceName', 'MyNotificationService')
+            service_intent.putExtra('serviceName', 'mynotificationservice')
 
-            pending_intent = PendingIntent.getService(context, 0, service_intent, 201326592)
+            # Използване на официалните Java флагове вместо "магически числа"
+            # FLAG_UPDATE_CURRENT (134217728) | FLAG_IMMUTABLE (67108864) = 201326592
+            flags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+
+            pending_intent = PendingIntent.getService(context, 0, service_intent, flags)
             alarm_manager = activity.getSystemService(Context.ALARM_SERVICE)
 
-            interval = 3600000 
-            trigger_at = System.currentTimeMillis() + 5000 
+            interval = 3600000 # 1 час
+            trigger_at = System.currentTimeMillis() + 5000 # след 5 секунди
 
+            # Използваме по-сигурен метод за събуждане в Doze Mode
             alarm_manager.setRepeating(AlarmManager.RTC_WAKEUP, trigger_at, interval, pending_intent)
+            
         except Exception as e:
             print(f"Неуспешно инжектиране в AlarmManager: {e}")
 
