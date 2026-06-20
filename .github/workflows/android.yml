@@ -92,3 +92,97 @@ jobs:
             
             MAX_RETRIES=3
             RETRY_COUNT=0
+            NDK_URL="https://dl.google.com/android/repository/android-ndk-r25.2.9519653-linux-x86_64.zip"
+            
+            while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+              if curl -L --fail --retry 3 --retry-delay 2 -o /tmp/android-ndk.zip "$NDK_URL"; then
+                # Валидация на ZIP архива преди разархивиране
+                if unzip -t /tmp/android-ndk.zip > /dev/null 2>&1; then
+                  echo "✅ NDK архивът е свален и верифициран успешно!"
+                  break
+                else
+                  echo "⚠️ Сваленият ZIP файл е повреден/непълен, опитвам отново..."
+                  rm -f /tmp/android-ndk.zip
+                  RETRY_COUNT=$((RETRY_COUNT + 1))
+                fi
+              else
+                echo "⚠️ Даунлоудът пропадна, следва нов опит..."
+                RETRY_COUNT=$((RETRY_COUNT + 1))
+              fi
+            done
+            
+            if [ ! -f /tmp/android-ndk.zip ]; then
+              echo "❌ Неуспешен даунлоуд на NDK след $MAX_RETRIES опита."
+              exit 1
+            fi
+            
+            mkdir -p /tmp/ndk_extracted
+            unzip -q /tmp/android-ndk.zip -d /tmp/ndk_extracted
+            
+            mkdir -p "$ANDROID_SDK_ROOT/ndk"
+            
+            # Намиране на инсталираната папка динамично и преместване
+            NDK_EXTRACTED_DIR=$(find /tmp/ndk_extracted -maxdepth 1 -type d -name "android-ndk-*" | head -1)
+            if [ -z "$NDK_EXTRACTED_DIR" ]; then
+              echo "❌ Неуспех: Разархивираната NDK папка не беше намерена!"
+              exit 1
+            fi
+            
+            mv "$NDK_EXTRACTED_DIR" "$ANDROID_SDK_ROOT/ndk/25.2.9519653"
+            rm -rf /tmp/ndk_extracted /tmp/android-ndk.zip
+          fi
+
+          # Крайна проверка за наличие
+          if [ ! -d "$ANDROID_SDK_ROOT/ndk/25.2.9519653" ]; then
+            echo "🚨 ГРЕШКА: NDK все още липсва от дестинацията!"
+            exit 1
+          else
+            echo "✅ УСПЕХ: NDK е налично и валидирано на адрес: $ANDROID_SDK_ROOT/ndk/25.2.9519653"
+          fi
+
+          echo "ANDROIDNDK=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
+        shell: bash
+
+      # ВЕРИФИКАЦИЯ ПРЕДИ СТАРТ
+      - name: Verify SDK Before Build
+        run: |
+          set -euo pipefail
+          export ANDROID_SDK_ROOT=$HOME/Android/Sdk
+          echo "=== Налични платформи ==="
+          ls -la "$ANDROID_SDK_ROOT/platforms" || true
+          echo "=== Структура на NDK ==="
+          ls -la "$ANDROID_SDK_ROOT/ndk/25.2.9519653" | head -n 5 || true
+        shell: bash
+
+      # СТАБИЛНО КОМПИЛИРАНЕ С ПОДРОБЕН ЛОГ
+      - name: Build APK with Buildozer
+        env:
+          APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
+          CFLAGS: "-Wno-incompatible-function-pointer-types"
+          ANDROIDSDK: "/home/runner/Android/Sdk"
+          ANDROID_SDK_ROOT: "/home/runner/Android/Sdk"
+          ANDROID_HOME: "/home/runner/Android/Sdk"
+          ANDROIDNDK: "/home/runner/Android/Sdk/ndk/25.2.9519653"
+          ANDROID_NDK_HOME: "/home/runner/Android/Sdk/ndk/25.2.9519653"
+          ANDROIDAPI: "33"
+          ANDROIDMINAPI: "24"
+        run: |
+          export ANDROID_SDK_ROOT=$HOME/Android/Sdk
+          export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$PATH"
+          
+          buildozer -v android debug
+          
+          if [ -z "$(ls -A bin/*.apk 2>/dev/null)" ]; then
+            echo "🚨 КРИТИЧНА ГРЕШКА: Папка bin/ е празна. Buildozer не генерира APK!"
+            exit 1
+          else
+            echo "✅ УСПЕХ: APK файлът беше намерен!"
+          fi
+        shell: bash
+          
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: bin/*.apk
