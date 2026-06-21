@@ -51,7 +51,7 @@ jobs:
           echo 'log_level = 2' >> buildozer.spec
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v   
+        uses: android-actions/setup-android@v3  
       - name: Install SDK components, Link SDK, and detect NDK
         run: |
           # Използваме директно sdkmanager от PATH, предоставен ни от горната стъпка
