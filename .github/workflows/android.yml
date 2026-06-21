@@ -35,19 +35,25 @@ jobs:
           unzip commandlinetools-linux-11076708_latest.zip
           mkdir -p $HOME/android-sdk
           mv cmdline-tools $HOME/android-sdk/
+
           # Създаване на правилната структура за cmdline-tools
           mkdir -p $HOME/android-sdk/cmdline-tools/latest
           mv $HOME/android-sdk/cmdline-tools/* $HOME/android-sdk/cmdline-tools/latest/ 2>/dev/null || true
+
           export ANDROID_SDK_ROOT=$HOME/android-sdk
           export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
+
           # Приемане на лицензи
           yes | sdkmanager --licenses
+
           # Инсталиране на необходимите компоненти
           sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
+
           # Създаване на symlink за NDK в очаквания от Buildozer формат
           mkdir -p $ANDROID_SDK_ROOT
           ln -sfn $ANDROID_SDK_ROOT/ndk/25.2.9519653 $ANDROID_SDK_ROOT/android-ndk-r25.2.9519653
           ln -sfn $ANDROID_SDK_ROOT/ndk/25.2.9519653 $ANDROID_SDK_ROOT/ndk-bundle
+
           # Проверка на инсталацията
           echo "=== Android SDK contents ==="
           ls -la $ANDROID_SDK_ROOT
