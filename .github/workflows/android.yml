@@ -30,37 +30,58 @@ jobs:
 
       - name: Install Android SDK and NDK
         run: |
-          # Инсталиране на Android Command Line Tools
+          # Изтегляне на Android command line tools
           wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
           unzip commandlinetools-linux-11076708_latest.zip
           mkdir -p $HOME/android-sdk
           mv cmdline-tools $HOME/android-sdk/
-          
-          # Създаване на правилната структура
+
+          # Създаване на правилната структура за cmdline-tools
           mkdir -p $HOME/android-sdk/cmdline-tools/latest
           mv $HOME/android-sdk/cmdline-tools/* $HOME/android-sdk/cmdline-tools/latest/ 2>/dev/null || true
-          
-          # Инсталиране на SDK компоненти
+
           export ANDROID_SDK_ROOT=$HOME/android-sdk
           export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
-          
+
           # Приемане на лицензи
           yes | sdkmanager --licenses
-          
-          # Инсталиране на необходимите версии
-          sdkmanager "platforms;android-33"
-          sdkmanager "build-tools;33.0.2"
-          sdkmanager "ndk;25.2.9519653"
-          
-          # Създаване на символни връзки
-          ln -sf $ANDROID_SDK_ROOT/ndk/25.2.9519653 $ANDROID_SDK_ROOT/ndk-bundle
+
+          # Инсталиране на необходимите компоненти
+          sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
+
+          # sdkmanager инсталира NDK в $ANDROID_SDK_ROOT/ndk/25.2.9519653
+          # Buildozer очаква директория с име android-ndk-r25.2.9519653 - създаваме symlink
+          mkdir -p $ANDROID_SDK_ROOT
+          ln -sfn $ANDROID_SDK_ROOT/ndk/25.2.9519653 $ANDROID_SDK_ROOT/android-ndk-r25.2.9519653
+
+          # Създаваме ndk-bundle symlink за съвместимост
+          ln -sfn $ANDROID_SDK_ROOT/ndk/25.2.9519653 $ANDROID_SDK_ROOT/ndk-bundle
+
+          # Проверка на инсталацията
+          echo "=== Android SDK contents ==="
+          ls -la $ANDROID_SDK_ROOT
+          echo "=== NDK contents ==="
+          ls -la $ANDROID_SDK_ROOT/ndk/25.2.9519653 || true
+          echo "=== android-ndk symlink ==="
+          ls -la $ANDROID_SDK_ROOT/android-ndk-r25.2.9519653 || true
 
       - name: Setup environment variables
         run: |
           echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=$HOME/android-sdk/ndk/25.2.9519653" >> $GITHUB_ENV
-          echo "PATH=$HOME/android-sdk/cmdline-tools/latest/bin:$PATH" >> $GITHUB_ENV
+          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$HOME/android-sdk/android-ndk-r25.2.9519653" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$HOME/android-sdk/android-ndk-r25.2.9519653" >> $GITHUB_ENV
+          echo "PATH=$HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools:$PATH" >> $GITHUB_ENV
           echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
+
+      - name: Debug environment (optional)
+        run: |
+          echo "=== Environment variables ==="
+          env | grep -E 'ANDROID_|PATH'
+          echo "=== NDK directory check ==="
+          ls -la $ANDROID_NDK_HOME || echo "NDK_HOME not found!"
+          echo "=== SDK directory check ==="
+          ls -la $ANDROID_SDK_ROOT || echo "SDK_ROOT not found!"
 
       - name: Create buildozer.spec
         run: |
@@ -92,7 +113,7 @@ jobs:
           APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
         run: |
           buildozer -vvv android debug
-          
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
