@@ -8,7 +8,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ФИКС: Използваме JDK 17, защото новите Android инструменти го изискват
+      # Използваме JDK 17, тъй като модерните Android инструменти го изискват
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -52,15 +52,17 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          # ФИКС: Изрично указваме съвместима с Java 17 версия на инструментите
+          cmdline-tools-version: '11.0'
 
       - name: Install SDK components, Link SDK, and detect NDK
         run: |
-          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
-          yes | "$SDKMANAGER" --licenses || true
-          # Инсталираме необходимите инструменти
-          yes | "$SDKMANAGER" "platform-tools" "platforms;android-33" "build-tools;33.0.2" "cmdline-tools;latest" "ndk;25.2.9519653" || true
+          # Използваме директно sdkmanager от PATH, предоставен ни от горната стъпка
+          yes | sdkmanager --licenses || true
+          yes | sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653" || true
 
-          # СИМВОЛНА ВРЪЗКА: Buildozer вижда системното SDK като свое собствено
+          # СИМВОЛНА ВРЪЗКА: Показваме на Buildozer къде са реалните инструменти
           mkdir -p "$HOME/.buildozer/android/platform"
           rm -rf "$HOME/.buildozer/android/platform/android-sdk"
           ln -s "$ANDROID_SDK_ROOT" "$HOME/.buildozer/android/platform/android-sdk"
@@ -85,9 +87,9 @@ jobs:
           ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
           ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
         run: |
-          # Проверка за aidl
+          # Бърза проверка дали aidl е на мястото си преди самия билд
           if ! ls "$ANDROID_SDK_ROOT/build-tools"/*/aidl >/dev/null 2>&1; then
-            echo "❌ aidl не е намерен!"
+            echo "❌ aidl не е намерен в инсталираните build-tools!"
             exit 1
           fi
 
