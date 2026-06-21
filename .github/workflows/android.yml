@@ -28,39 +28,44 @@ jobs:
       - name: Add user local bin to PATH
         run: echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
 
-      - name: Install Android SDK and NDK (version 23)
+      - name: Download and install NDK 25.2.9519653 directly
         run: |
-          # Изтегляне на Android command line tools
+          # Изтегляне на NDK директно от Google (правилно име на файла)
+          wget https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
+          unzip android-ndk-r25c-linux.zip
+          mkdir -p $HOME/android-sdk/ndk
+          mv android-ndk-r25c $HOME/android-sdk/ndk/25.2.9519653
+          
+          # Инсталиране на SDK и други компоненти
           wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
           unzip commandlinetools-linux-11076708_latest.zip
           mkdir -p $HOME/android-sdk
           mv cmdline-tools $HOME/android-sdk/
-
+          
           # Създаване на правилната структура за cmdline-tools
           mkdir -p $HOME/android-sdk/cmdline-tools/latest
           mv $HOME/android-sdk/cmdline-tools/* $HOME/android-sdk/cmdline-tools/latest/ 2>/dev/null || true
-
+          
           export ANDROID_SDK_ROOT=$HOME/android-sdk
           export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
-
-          # Приемане на лицензи
+          
+          # Приемане на лицензи и инсталиране на платформа
           yes | sdkmanager --licenses
-
-          # Инсталиране на необходимите компоненти (NDK 23)
-          sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;23.2.8568313"
-
-          # Проверка на инсталацията
-          echo "=== Android SDK contents ==="
-          ls -la $ANDROID_SDK_ROOT
-          echo "=== NDK contents ==="
-          ls -la $ANDROID_SDK_ROOT/ndk/ || true
+          sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
+          
+          # Създаване на симлинк за съвместимост
+          ln -sfn $HOME/android-sdk/ndk/25.2.9519653 $HOME/android-sdk/ndk-bundle
+          ln -sfn $HOME/android-sdk/ndk/25.2.9519653 $HOME/android-sdk/android-ndk-r25.2.9519653
+          
+          echo "=== NDK installation ==="
+          ls -la $HOME/android-sdk/ndk/25.2.9519653
 
       - name: Setup environment variables
         run: |
           echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
           echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=$HOME/android-sdk/ndk/23.2.8568313" >> $GITHUB_ENV
-          echo "ANDROID_NDK_ROOT=$HOME/android-sdk/ndk/23.2.8568313" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$HOME/android-sdk/ndk/25.2.9519653" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$HOME/android-sdk/ndk/25.2.9519653" >> $GITHUB_ENV
           echo "PATH=$HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools:$PATH" >> $GITHUB_ENV
           echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
 
@@ -80,7 +85,7 @@ jobs:
           android.archs = arm64-v8a
           android.api = 33
           android.minapi = 24
-          android.ndk = 23.2.8568313
+          android.ndk = 25.2.9519653
           android.sdk = 33
           android.permissions = POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK, RECEIVE_BOOT_COMPLETED
           services = mynotificationservice:service.py
@@ -88,6 +93,8 @@ jobs:
 
           [buildozer]
           log_level = 2
+          android_sdk_path = /home/runner/android-sdk
+          android_ndk_path = /home/runner/android-sdk/ndk/25.2.9519653
           EOF
 
       - name: Build APK with Buildozer
@@ -95,8 +102,8 @@ jobs:
           APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
         run: |
           export ANDROID_SDK_ROOT=$HOME/android-sdk
-          export ANDROID_NDK_HOME=$HOME/android-sdk/ndk/23.2.8568313
-          export ANDROID_NDK_ROOT=$HOME/android-sdk/ndk/23.2.8568313
+          export ANDROID_NDK_HOME=$HOME/android-sdk/ndk/25.2.9519653
+          export ANDROID_NDK_ROOT=$HOME/android-sdk/ndk/25.2.9519653
           
           buildozer -vvv android debug
 
