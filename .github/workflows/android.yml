@@ -17,107 +17,53 @@ jobs:
       - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y git zip unzip python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev tk-dev libgdbm-compat-dev libreoffice-dev libmpdec-dev bluez libbluetooth-dev libxml2-dev libxslt1-dev libopenjp2-7-dev libjpeg-dev libfreetype6-dev libharfbuzz0b libwebp7 libtiff5-dev build-essential
+          sudo apt-get install -y git zip unzip python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev tk-dev libgdbm-compat-dev libreoffice-dev libmpdec-dev bluez libbluetooth-dev
 
       - name: Install Buildozer and Cython
         run: |
           pip3 install --user --upgrade pip
-          pip3 install --user "Cython==3.0.11"
-          pip3 install --user --upgrade git+https://github.com/kivy/buildozer.git
+          pip3 install --user "Cython==0.29.35" "buildozer==1.5.0"
 
       - name: Add user local bin to PATH
         run: echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
 
-      - name: Download and install Android SDK and NDK
-        run: |
-          # Изтегляне на SDK
-          wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-          unzip commandlinetools-linux-11076708_latest.zip
-          mkdir -p $HOME/android-sdk
-          mv cmdline-tools $HOME/android-sdk/
-          
-          mkdir -p $HOME/android-sdk/cmdline-tools/latest
-          mv $HOME/android-sdk/cmdline-tools/* $HOME/android-sdk/cmdline-tools/latest/ 2>/dev/null || true
-          
-          export ANDROID_SDK_ROOT=$HOME/android-sdk
-          export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
-          
-          yes | sdkmanager --licenses
-          sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
-          
-          # Изтегляне и инсталиране на NDK r25c
-          wget https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
-          unzip android-ndk-r25c-linux.zip
-          mkdir -p $HOME/android-sdk/ndk
-          mv android-ndk-r25c $HOME/android-sdk/ndk/25.2.9519653
-          
-          # Създаване на симлинк за Buildozer
-          ln -sfn $HOME/android-sdk/ndk/25.2.9519653 $HOME/android-sdk/ndk-bundle
-          
-          echo "=== NDK installed at ==="
-          ls -la $HOME/android-sdk/ndk/25.2.9519653
-
-      - name: Force Buildozer to use our SDK and NDK
-        run: |
-          # Изтриваме всичко, което Buildozer може да е инсталирал
-          rm -rf ~/.buildozer/android/platform/android-sdk
-          rm -rf ~/.buildozer/android/platform/android-ndk-*
-          
-          # Създаваме симлинкове от мястото, където Buildozer търси
-          mkdir -p ~/.buildozer/android/platform
-          ln -sfn $HOME/android-sdk ~/.buildozer/android/platform/android-sdk
-          ln -sfn $HOME/android-sdk/ndk/25.2.9519653 ~/.buildozer/android/platform/android-ndk-r25.2.9519653
-
-      - name: Setup environment variables
-        run: |
-          echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_NDK_HOME=$HOME/android-sdk/ndk/25.2.9519653" >> $GITHUB_ENV
-          echo "ANDROID_NDK_ROOT=$HOME/android-sdk/ndk/25.2.9519653" >> $GITHUB_ENV
-          echo "PATH=$HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools:$PATH" >> $GITHUB_ENV
-          echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
-
       - name: Create buildozer.spec
         run: |
-          cat > buildozer.spec << 'EOF'
-          [app]
-          title = GrafikProverki
-          package.name = grafikapp
-          package.domain = org.twoman
-          source.dir = .
-          source.include_exts = py,png,jpg,kv,atlas
-          version = 1.0
-          requirements = python3, kivy, pillow, pyjnius
-          orientation = portrait
-          fullscreen = 1
-          android.archs = arm64-v8a
-          android.api = 33
-          android.minapi = 24
-          android.ndk = 25.2.9519653
-          android.sdk = 33
-          android.permissions = POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK, RECEIVE_BOOT_COMPLETED
-          services = mynotificationservice:service.py
-          android.gradle_dependencies = androidx.appcompat:appcompat:1.6.1
-
-          [buildozer]
-          log_level = 2
-          android_sdk_path = /home/runner/android-sdk
-          android_ndk_path = /home/runner/android-sdk/ndk/25.2.9519653
-          EOF
+          echo '[app]' > buildozer.spec
+          echo 'title = GrafikProverki' >> buildozer.spec
+          echo 'package.name = grafikapp' >> buildozer.spec
+          echo 'package.domain = org.twoman' >> buildozer.spec
+          echo 'source.dir = .' >> buildozer.spec
+          echo 'source.include_exts = py,png,jpg,kv,atlas' >> buildozer.spec
+          echo 'version = 1.0' >> buildozer.spec
+          echo 'requirements = python3==3.11.0, hostpython3==3.11.0, kivy==2.3.0, pillow==10.2.0, pyjnius, plyer' >> buildozer.spec
+          echo 'orientation = portrait' >> buildozer.spec
+          echo 'fullscreen = 1' >> buildozer.spec
+          echo 'android.archs = arm64-v8a' >> buildozer.spec
+          echo 'android.api = 33' >> buildozer.spec
+          echo 'android.minapi = 24' >> buildozer.spec
+          echo 'android.ndk = 25c' >> buildozer.spec
+          echo 'android.sdk = 33' >> buildozer.spec
+          echo 'android.permissions = POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK, RECEIVE_BOOT_COMPLETED, FOREGROUND_SERVICE' >> buildozer.spec
+          echo 'services = MyNotificationService:service.py' >> buildozer.spec
+          echo 'android.gradle_dependencies = androidx.core:core:1.9.0, androidx.appcompat:appcompat:1.6.1' >> buildozer.spec
+          echo 'android.add_src = yes' >> buildozer.spec
+          echo 'android.enable_androidx = True' >> buildozer.spec
+          echo 'android.meta_data = android.app.background_running=True' >> buildozer.spec
+          echo 'android.foreground_service = True' >> buildozer.spec
+          echo 'android.foreground_service_type = dataSync' >> buildozer.spec
+          echo '' >> buildozer.spec
+          echo '[buildozer]' >> buildozer.spec
+          echo 'log_level = 2' >> buildozer.spec
 
       - name: Build APK with Buildozer
-        env:
-          APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
         run: |
-          export ANDROID_SDK_ROOT=$HOME/android-sdk
-          export ANDROID_NDK_HOME=$HOME/android-sdk/ndk/25.2.9519653
-          export ANDROID_NDK_ROOT=$HOME/android-sdk/ndk/25.2.9519653
-          
-          # Принудително използване на нашите пътища
-          buildozer -vvv android debug
+          export APP_ANDROID_ACCEPT_SDK_LICENSE="1"
+          export CFLAGS="-Wno-incompatible-function-pointer-types"
+          buildozer android debug
 
-      - name: Upload APK
+      - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: GrafikProverki-APK
+          name: package
           path: bin/*.apk
