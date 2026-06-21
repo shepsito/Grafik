@@ -23,7 +23,6 @@ jobs:
         run: |
           pip3 install --user --upgrade pip
           pip3 install --user "Cython==3.0.11"
-          # Инсталираме от git, за да имаме фикса за ValueError
           pip3 install --user --upgrade git+https://github.com/kivy/buildozer.git
 
       - name: Add user local bin to PATH
@@ -46,7 +45,6 @@ jobs:
           echo 'android.minapi = 24' >> buildozer.spec
           echo 'android.permissions = POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK, RECEIVE_BOOT_COMPLETED' >> buildozer.spec
           echo 'services = mynotificationservice:service.py' >> buildozer.spec
-          # android.ndk е премахнат тук нарочно!
           echo 'android.gradle_dependencies = androidx.appcompat:appcompat:1.6.1' >> buildozer.spec
           echo '[buildozer]' >> buildozer.spec
           echo 'log_level = 2' >> buildozer.spec
@@ -54,21 +52,26 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install SDK components and detect NDK
+      - name: Install SDK components, Link SDK, and detect NDK
         run: |
           SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses || true
-          # Инсталираме необходимите компоненти
-          "$SDKMANAGER" "platform-tools" "platforms;android-33" "build-tools;33.0.0" "ndk;25.2.9519653" || true
-          
-          # Динамично откриване на NDK директорията
+          # Инсталираме всичко необходимо, включително build-tools 33.0.2, където е aidl
+          yes | "$SDKMANAGER" "platform-tools" "platforms;android-33" "build-tools;33.0.2" "cmdline-tools;latest" "ndk;25.2.9519653" || true
+
+          # СИМВОЛНА ВРЪЗКА: Buildozer ще мисли, че неговото SDK е нашето системно SDK
+          mkdir -p "$HOME/.buildozer/android/platform"
+          rm -rf "$HOME/.buildozer/android/platform/android-sdk"
+          ln -s "$ANDROID_SDK_ROOT" "$HOME/.buildozer/android/platform/android-sdk"
+
+          # Детекция на NDK
           if [ -d "$ANDROID_SDK_ROOT/ndk" ]; then
             NDK_DIR=$(ls -1 "$ANDROID_SDK_ROOT/ndk" | tail -n 1)
-            echo "Detected NDK folder: $NDK_DIR"
             echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/$NDK_DIR" >> $GITHUB_ENV
             echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/$NDK_DIR" >> $GITHUB_ENV
+            echo "ANDROIDNDK=$ANDROID_SDK_ROOT/ndk/$NDK_DIR" >> $GITHUB_ENV
           else
-            echo "❌ NDK folder not found in $ANDROID_SDK_ROOT/ndk"
+            echo "❌ NDK folder not found!"
             exit 1
           fi
 
@@ -77,21 +80,23 @@ jobs:
           APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
           CFLAGS: "-Wno-incompatible-function-pointer-types"
           BUILDOZER_DOWNLOAD_TIMEOUT: "900"
+          ANDROIDSDK: ${{ env.ANDROID_SDK_ROOT }}
+          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
         run: |
-          echo "Checking NDK existence at: $ANDROID_NDK_HOME"
-          if [ -d "$ANDROID_NDK_HOME" ]; then
-            echo "✅ NDK found. Starting build..."
-          else
-            echo "❌ NDK not found! Checking SDK root:"
-            ls -la "$ANDROID_SDK_ROOT/ndk" || true
+          # Sanity check: Проверка за aidl
+          echo "Looking for aidl in system SDK..."
+          if ! ls "$ANDROID_SDK_ROOT/build-tools"/*/aidl >/dev/null 2>&1; then
+            echo "❌ aidl не е намерен! Списък с build-tools:"
+            ls -la "$ANDROID_SDK_ROOT/build-tools" || true
             exit 1
           fi
+          echo "✅ aidl е намерен."
 
           buildozer -vvv android debug 2>&1 | tee build.log
           BUILD_EXIT_CODE=${PIPESTATUS[0]}
           if [ $BUILD_EXIT_CODE -ne 0 ]; then
             echo "🚨 Build failed with exit code: $BUILD_EXIT_CODE"
-            echo "=== FULL BUILD LOG ==="
             cat build.log
             exit $BUILD_EXIT_CODE
           fi
