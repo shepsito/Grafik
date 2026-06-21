@@ -36,8 +36,8 @@ jobs:
           echo 'source.dir = .' >> buildozer.spec
           echo 'source.include_exts = py,png,jpg,kv,atlas' >> buildozer.spec
           echo 'version = 1.0' >> buildozer.spec
-          # ФИКС: Указваме конкретна версия на Python
-          echo 'requirements = python3.11, kivy, pillow, pyjnius' >> buildozer.spec
+          # ФИКС: Използваме гъвкаво python3 вместо конкретна версия
+          echo 'requirements = python3, kivy, pillow, pyjnius' >> buildozer.spec
           echo 'orientation = portrait' >> buildozer.spec
           echo 'fullscreen = 1' >> buildozer.spec
           echo 'android.archs = arm64-v8a' >> buildozer.spec
@@ -73,8 +73,8 @@ jobs:
           BUILD_EXIT_CODE=${PIPESTATUS[0]}
           if [ $BUILD_EXIT_CODE -ne 0 ]; then
             echo "🚨 Build failed with exit code: $BUILD_EXIT_CODE"
-            echo "=== FULL BUILD LOG (Last 200 lines) ==="
-            tail -n 200 build.log
+            echo "=== FULL BUILD LOG ==="
+            cat build.log
             exit $BUILD_EXIT_CODE
           fi
 
