@@ -19,11 +19,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y git zip unzip python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev tk-dev libgdbm-compat-dev libreoffice-dev libmpdec-dev bluez libbluetooth-dev libxml2-dev libxslt1-dev libopenjp2-7-dev libjpeg-dev libfreetype6-dev libharfbuzz0b libwebp7 libtiff5-dev build-essential
 
-      - name: Install Buildozer and Cython
+      - name: Install Buildozer, Cython and p4a
         run: |
           pip3 install --user --upgrade pip
           pip3 install --user "Cython==3.0.11"
           pip3 install --user --upgrade git+https://github.com/kivy/buildozer.git
+          pip3 install --user git+https://github.com/kivy/python-for-android.git
 
       - name: Add user local bin to PATH
         run: echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
@@ -49,7 +50,7 @@ jobs:
           # Инсталиране на необходимите компоненти
           sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2" "ndk;25.2.9519653"
 
-          # Създаване на symlink за NDK в очаквания от Buildozer формат
+          # Създаване на symlink за NDK
           mkdir -p $ANDROID_SDK_ROOT
           ln -sfn $ANDROID_SDK_ROOT/ndk/25.2.9519653 $ANDROID_SDK_ROOT/android-ndk-r25.2.9519653
           ln -sfn $ANDROID_SDK_ROOT/ndk/25.2.9519653 $ANDROID_SDK_ROOT/ndk-bundle
@@ -60,50 +61,61 @@ jobs:
           echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
           echo "ANDROID_NDK_HOME=$HOME/android-sdk/android-ndk-r25.2.9519653" >> $GITHUB_ENV
           echo "ANDROID_NDK_ROOT=$HOME/android-sdk/android-ndk-r25.2.9519653" >> $GITHUB_ENV
-          echo "BUILDOZER_ANDROID_SDK_PATH=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "BUILDOZER_ANDROID_NDK_PATH=$HOME/android-sdk/android-ndk-r25.2.9519653" >> $GITHUB_ENV
           echo "PATH=$HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools:$PATH" >> $GITHUB_ENV
           echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
 
+      - name: Create .p4a config
+        run: |
+          mkdir -p ~/.p4a
+          cat > ~/.p4a/config.ini << 'EOF'
+          [DEFAULT]
+          android_sdk_path = /home/runner/android-sdk
+          android_ndk_path = /home/runner/android-sdk/android-ndk-r25.2.9519653
+          android_api = 33
+          ndk_version = 25.2.9519653
+          sdk_version = 33
+          EOF
+
       - name: Create buildozer.spec
         run: |
-          echo "[app]" > buildozer.spec
-          echo "title = GrafikProverki" >> buildozer.spec
-          echo "package.name = grafikapp" >> buildozer.spec
-          echo "package.domain = org.twoman" >> buildozer.spec
-          echo "source.dir = ." >> buildozer.spec
-          echo "source.include_exts = py,png,jpg,kv,atlas" >> buildozer.spec
-          echo "version = 1.0" >> buildozer.spec
-          echo "requirements = python3, kivy, pillow, pyjnius" >> buildozer.spec
-          echo "orientation = portrait" >> buildozer.spec
-          echo "fullscreen = 1" >> buildozer.spec
-          echo "android.archs = arm64-v8a" >> buildozer.spec
-          echo "android.api = 33" >> buildozer.spec
-          echo "android.minapi = 24" >> buildozer.spec
-          echo "android.ndk = 25.2.9519653" >> buildozer.spec
-          echo "android.sdk = 33" >> buildozer.spec
-          echo "android.permissions = POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK, RECEIVE_BOOT_COMPLETED" >> buildozer.spec
-          echo "services = mynotificationservice:service.py" >> buildozer.spec
-          echo "android.gradle_dependencies = androidx.appcompat:appcompat:1.6.1" >> buildozer.spec
-          echo "" >> buildozer.spec
-          echo "[buildozer]" >> buildozer.spec
-          echo "log_level = 2" >> buildozer.spec
-          echo "android_sdk_path = /home/runner/android-sdk" >> buildozer.spec
-          echo "android_ndk_path = /home/runner/android-sdk/android-ndk-r25.2.9519653" >> buildozer.spec
-          echo "p4a.branch = master" >> buildozer.spec
-          echo "p4a.ndk = 25.2.9519653" >> buildozer.spec
-          echo "p4a.sdk = 33" >> buildozer.spec
+          cat > buildozer.spec << 'EOF'
+          [app]
+          title = GrafikProverki
+          package.name = grafikapp
+          package.domain = org.twoman
+          source.dir = .
+          source.include_exts = py,png,jpg,kv,atlas
+          version = 1.0
+          requirements = python3, kivy, pillow, pyjnius
+          orientation = portrait
+          fullscreen = 1
+          android.archs = arm64-v8a
+          android.api = 33
+          android.minapi = 24
+          android.ndk = 25.2.9519653
+          android.sdk = 33
+          android.permissions = POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK, RECEIVE_BOOT_COMPLETED
+          services = mynotificationservice:service.py
+          android.gradle_dependencies = androidx.appcompat:appcompat:1.6.1
+
+          [buildozer]
+          log_level = 2
+          android_sdk_path = /home/runner/android-sdk
+          android_ndk_path = /home/runner/android-sdk/android-ndk-r25.2.9519653
+          p4a.branch = master
+          EOF
 
       - name: Build APK with Buildozer
         env:
           APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
+          P4A_ANDROID_SDK_PATH: "/home/runner/android-sdk"
+          P4A_ANDROID_NDK_PATH: "/home/runner/android-sdk/android-ndk-r25.2.9519653"
         run: |
           export ANDROID_SDK_ROOT=$HOME/android-sdk
           export ANDROID_NDK_HOME=$HOME/android-sdk/android-ndk-r25.2.9519653
-          export BUILDOZER_ANDROID_SDK_PATH=$HOME/android-sdk
-          export BUILDOZER_ANDROID_NDK_PATH=$HOME/android-sdk/android-ndk-r25.2.9519653
           
-          buildozer -vvv android debug
+          # Използваме force да пропуснем изтеглянето
+          buildozer -vvv android debug -- --force
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
