@@ -28,37 +28,45 @@ jobs:
       - name: Add user local bin to PATH
         run: echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
 
-      - name: Download and install NDK 25.2.9519653 directly
+      - name: Download and install Android SDK and NDK
         run: |
-          # Изтегляне на NDK директно от Google (правилно име на файла)
-          wget https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
-          unzip android-ndk-r25c-linux.zip
-          mkdir -p $HOME/android-sdk/ndk
-          mv android-ndk-r25c $HOME/android-sdk/ndk/25.2.9519653
-          
-          # Инсталиране на SDK и други компоненти
+          # Изтегляне на SDK
           wget https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
           unzip commandlinetools-linux-11076708_latest.zip
           mkdir -p $HOME/android-sdk
           mv cmdline-tools $HOME/android-sdk/
           
-          # Създаване на правилната структура за cmdline-tools
           mkdir -p $HOME/android-sdk/cmdline-tools/latest
           mv $HOME/android-sdk/cmdline-tools/* $HOME/android-sdk/cmdline-tools/latest/ 2>/dev/null || true
           
           export ANDROID_SDK_ROOT=$HOME/android-sdk
           export PATH=$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$PATH
           
-          # Приемане на лицензи и инсталиране на платформа
           yes | sdkmanager --licenses
           sdkmanager "platform-tools" "platforms;android-33" "build-tools;33.0.2"
           
-          # Създаване на симлинк за съвместимост
-          ln -sfn $HOME/android-sdk/ndk/25.2.9519653 $HOME/android-sdk/ndk-bundle
-          ln -sfn $HOME/android-sdk/ndk/25.2.9519653 $HOME/android-sdk/android-ndk-r25.2.9519653
+          # Изтегляне и инсталиране на NDK r25c
+          wget https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
+          unzip android-ndk-r25c-linux.zip
+          mkdir -p $HOME/android-sdk/ndk
+          mv android-ndk-r25c $HOME/android-sdk/ndk/25.2.9519653
           
-          echo "=== NDK installation ==="
+          # Създаване на симлинк за Buildozer
+          ln -sfn $HOME/android-sdk/ndk/25.2.9519653 $HOME/android-sdk/ndk-bundle
+          
+          echo "=== NDK installed at ==="
           ls -la $HOME/android-sdk/ndk/25.2.9519653
+
+      - name: Force Buildozer to use our SDK and NDK
+        run: |
+          # Изтриваме всичко, което Buildozer може да е инсталирал
+          rm -rf ~/.buildozer/android/platform/android-sdk
+          rm -rf ~/.buildozer/android/platform/android-ndk-*
+          
+          # Създаваме симлинкове от мястото, където Buildozer търси
+          mkdir -p ~/.buildozer/android/platform
+          ln -sfn $HOME/android-sdk ~/.buildozer/android/platform/android-sdk
+          ln -sfn $HOME/android-sdk/ndk/25.2.9519653 ~/.buildozer/android/platform/android-ndk-r25.2.9519653
 
       - name: Setup environment variables
         run: |
@@ -105,6 +113,7 @@ jobs:
           export ANDROID_NDK_HOME=$HOME/android-sdk/ndk/25.2.9519653
           export ANDROID_NDK_ROOT=$HOME/android-sdk/ndk/25.2.9519653
           
+          # Принудително използване на нашите пътища
           buildozer -vvv android debug
 
       - name: Upload APK
