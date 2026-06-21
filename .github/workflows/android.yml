@@ -51,11 +51,7 @@ jobs:
           echo 'log_level = 2' >> buildozer.spec
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-        with:
-          # ФИКС: Изрично указваме съвместима с Java 17 версия на инструментите
-          cmdline-tools-version: '11.0'
-
+        uses: android-actions/setup-android@v   
       - name: Install SDK components, Link SDK, and detect NDK
         run: |
           # Използваме директно sdkmanager от PATH, предоставен ни от горната стъпка
