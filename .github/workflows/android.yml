@@ -44,6 +44,7 @@ jobs:
           echo 'android.archs = arm64-v8a' >> buildozer.spec
           echo 'android.api = 33' >> buildozer.spec
           echo 'android.minapi = 24' >> buildozer.spec
+          echo 'android.build_tools_version = 33.0.2' >> buildozer.spec
           echo 'android.permissions = POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK, RECEIVE_BOOT_COMPLETED' >> buildozer.spec
           echo 'services = mynotificationservice:service.py' >> buildozer.spec
           echo 'android.gradle_dependencies = androidx.appcompat:appcompat:1.6.1' >> buildozer.spec
@@ -52,7 +53,6 @@ jobs:
 
       - name: Install SDK components, Link SDK, and detect NDK
         run: |
-          # ФИКС: Извикваме ИЗРИЧНО модерния мениджър през пълния му път
           SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
           
           yes | "$SDKMANAGER" --licenses || true
@@ -83,11 +83,7 @@ jobs:
           ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
           ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
         run: |
-          if ! ls "$ANDROID_SDK_ROOT/build-tools"/*/aidl >/dev/null 2>&1; then
-            echo "❌ aidl не е намерен в инсталираните build-tools!"
-            exit 1
-          fi
-
+          # Директно стартираме Buildozer, той сам ще си намери правилния aidl от споделеното SDK
           buildozer -vvv android debug 2>&1 | tee build.log
           BUILD_EXIT_CODE=${PIPESTATUS[0]}
           if [ $BUILD_EXIT_CODE -ne 0 ]; then
