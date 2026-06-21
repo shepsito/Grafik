@@ -1,179 +1,267 @@
-import os
 import time
-import calendar
 from datetime import datetime, timedelta
+import calendar
 from jnius import autoclass
 from kivy.utils import platform
 
-def get_monday_week_number(dt):
-    if dt.weekday() != 0: return None
-    return 1 if dt.day <= 7 else 2 if dt.day <= 14 else 3 if dt.day <= 21 else 4
+# --- Помощни логически функции за седмици и тримесечия ---
+def get_monday_week_number(date):
+    if date.weekday() != 0: return 0
+    return 1 if date.day <= 7 else 2 if date.day <= 14 else 3 if date.day <= 21 else 4
 
-def get_wednesday_week_number(dt):
-    if dt.weekday() != 2: return None
-    return 1 if dt.day <= 7 else 2 if dt.day <= 14 else 3 if dt.day <= 21 else 4
+def get_wednesday_week_number(date):
+    if date.weekday() != 2: return 0
+    return 1 if date.day <= 7 else 2 if date.day <= 14 else 3 if date.day <= 21 else 4
 
-def get_thursday_week_number(dt):
-    if dt.weekday() != 3: return None
-    return 1 if dt.day <= 7 else 2 if dt.day <= 14 else 3 if dt.day <= 21 else 4
+def get_thursday_week_number(date):
+    if date.weekday() != 3: return 0
+    return 1 if date.day <= 7 else 2 if date.day <= 14 else 3 if date.day <= 21 else 4
 
-def get_saturday_week_number(dt):
-    if dt.weekday() != 5: return None
-    return 1 if dt.day <= 7 else 2 if dt.day <= 14 else 3 if dt.day <= 21 else 4
+def get_saturday_week_number(date):
+    if date.weekday() != 5: return 0
+    return 1 if date.day <= 7 else 2 if date.day <= 14 else 3 if date.day <= 21 else 4
 
-def is_last_monday_of_quarter(dt):
-    if dt.weekday() != 0: return False
-    if dt.month not in [3, 6, 9, 12]: return False
-    return (calendar.monthrange(dt.year, dt.month)[1] - dt.day) < 7
+def is_last_monday_of_quarter(date):
+    if date.weekday() != 0: return False
+    if date.month in [3, 6, 9, 12]:
+        return calendar.monthrange(date.year, date.month)[1] - date.day < 7
+    return False
 
-def is_last_tuesday_of_quarter(dt):
-    if dt.weekday() != 1: return False
-    if dt.month not in [3, 6, 9, 12]: return False
-    return (calendar.monthrange(dt.year, dt.month)[1] - dt.day) < 7
+def is_last_tuesday_of_quarter(date):
+    if date.weekday() != 1: return False
+    if date.month in [3, 6, 9, 12]:
+        return calendar.monthrange(date.year, date.month)[1] - date.day < 7
+    return False
 
-def is_last_wednesday_of_quarter(dt):
-    if dt.weekday() != 2: return False
-    if dt.month not in [3, 6, 9, 12]: return False
-    return (calendar.monthrange(dt.year, dt.month)[1] - dt.day) < 7
+def is_last_wednesday_of_quarter(date):
+    if date.weekday() != 2: return False
+    if date.month in [3, 6, 9, 12]:
+        return calendar.monthrange(date.year, date.month)[1] - date.day < 7
+    return False
 
-def is_last_thursday_of_quarter(dt):
-    if dt.weekday() != 3: return False
-    if dt.month not in [3, 6, 9, 12]: return False
-    return (calendar.monthrange(dt.year, dt.month)[1] - dt.day) < 7
+def is_last_thursday_of_quarter(date):
+    if date.weekday() != 3: return False
+    if date.month in [3, 6, 9, 12]:
+        return calendar.monthrange(date.year, date.month)[1] - date.day < 7
+    return False
 
-def is_last_friday_of_quarter(dt):
-    if dt.weekday() != 4: return False
-    if dt.month not in [3, 6, 9, 12]: return False
-    return (calendar.monthrange(dt.year, dt.month)[1] - dt.day) < 7
+def is_last_friday_of_quarter(date):
+    if date.weekday() != 4: return False
+    if date.month in [3, 6, 9, 12]:
+        return calendar.monthrange(date.year, date.month)[1] - date.day < 7
+    return False
 
-def generate_yearly_schedule(year_val):
+def generate_yearly_schedule(year):
     events = []
-    start_date = datetime(year_val, 1, 1)
-    end_date = datetime(year_val, 12, 31)
+    start_date = datetime(year, 1, 1)
+    end_date = datetime(year, 12, 31)
     current = start_date
+
     while current <= end_date:
-        c_day = current.weekday()
-        c_month = current.month
-        m_week = get_monday_week_number(current)
-        wed_week = get_wednesday_week_number(current)
-        thu_week = get_thursday_week_number(current)
-        sat_week = get_saturday_week_number(current)
-        shifts = 1 if current.day % 2 != 0 else 2
-        
-        if c_day == 1 and current.day <= 7:
-            events.append((current, "🚨 Проверка АВР", "Аварийно осветление", "Проверка АВР на захранването-АСЕО ОЕОиСПКУ", shifts))
-        if c_day == 2 and current.day <= 7:
-            events.append((current, "🚨 ЕЕ ЦПС-2", "ЕЕ ЦПС-2", "Проверка изправността на аварийното осветление-АСЕО ОЕОиСПКУ", shifts))
-        if c_month in [3, 6, 9, 12] and current.day <= 7:
-            if c_day == 3:
-                events.append((current, "🚨 Ф.И. Проверка", "По процедура", "Ф.И. на аварийното осветление-АСЕО ОЕОиСПКУ", shifts))
-        if current.day == 1:
-            events.append((current, "🚨 МЗ и ЕЕ ЦПС-1", "МЗ и ЕЕ ЦПС-1", "Проверка изправността на евакуационното осветление-АСЕО ОЕОиСПКУ", shifts))
-        if m_week is not None:
-            events.append((current, "🚨  Проверка АВР (Пон.)", "МЗ,ЦПС-1", "Проверка АВР сборки на 0,4кВ захранени от 3 и 4 БА-АСЕО ОЕОиСПКУ", shifts))
-        if c_day == 1 and m_week is not None:
-            events.append((current, "🚨 Проверка АВР (Вт.)", "МЗ", "Проверка АВР сборки на 0,4кВ захранени от 23 и 24 БА-АСЕО ОЕОиСПКУ", shifts))
-        if wed_week is not None:
-            events.append((current, "🚨  Проверка АВР (Ср.)", "МЗ", "Проверка АВР сборки на 0,4кВ съответната с-ма-I (II,III)-блок 3-АСЕО ОЕОиСПКУ", shifts))
-        if thu_week is not None:
-            events.append((current, "🚨  Проверка АВР (Четв.)", "МЗ", "Проверка АВР сборки на 0,4кВ съответната с-ма-I (II,III)-блок 4-АСЕО ОЕОиСПКУ", shifts))
-        if sat_week is not None:
-            events.append((current, "🚨  Проверка АВР (Петък)", "МЗ,ХВО и ЦПС-1", "Проверка АВР сборки на 0,4кВ с/без сборки захр.от 3,4,23,24БА,33БА I-III,43БА I-III /-АСЕО ОЕОиСПКУ", shifts))
-        if current.day == 15:
-            events.append((current, "🚨 Секции 0,4кВ-ГК", "Секции 0,4кВ-ГК 1_4 block", "Проверка АВР на -ШУ и изправността на сигнализацията на панел 'С'БЩУ за повикване в КРУ-ДИС ОЕОиСПКУ", shifts))
-        if current.day == 20:
-            events.append((current, "🚨 Вентилни отводи", "Вентилни отводи 1 и 3 ТП", "Отчитане на -вентилни отводи-АСЕО ОЕОиСПКУ", shifts))
-        if current.day == 25:
-            events.append((current, "🚨 Ел.двигатели 6кВ", "Ел.двигатели 6кВ", "Измерване съпротивлението на изолацията на ел.двиг.6кВ.-ПВТ в резерв,1и 2ППП-АСЕО ОЕОиСПКУ", shifts))
+        current_day = current.day
+        current_month = current.month
+        monday_week = get_monday_week_number(current)
+        wednesday_week = get_wednesday_week_number(current)
+        thursday_week = get_thursday_week_number(current)
+        saturday_week = get_saturday_week_number(current)
+        shift = "Смяна 3" 
+
+        if current_month in [2, 9] and monday_week == 1:
+            events.append((current, "🚨 Проверка АВР", "Аварийно осветление", "Проверка АВР на захранването-НСЕО ОЕОиСКУ", "Смяна 2"))
+        if current_day in [11, 12]:
+            events.append((current, "🚨 ЕЕ ЦПС-2", "ЕЕ ЦПС-2", "Проверка изправноста на аварийното осветление-НСЕО ОЕОиСКУ", shift))
+        if current_month in [3, 10] and monday_week in [1, 2]:
+            events.append((current, "🚨 Ф.И. Проверка", "По процедура", "Ф.И. на аварийното осветление-НСЕО ОЕОиСКУ", shift))
+        if current_day == 15:
+            events.append((current, "🚨 МЗ и ЕЕ ЦПС-1", "МЗ и ЕЕ ЦПС-1", "Проверка изправността на евакуационното осветление-НСЕО ОЕОиСКУ", shift))
         if is_last_monday_of_quarter(current):
-            events.append((current, "🚨 Проверка ДГ-А", "ДГ-А", "Ф.И. на автономен товар не по малко от 60мин.-АСЕО ОЕОиСПКУ", shifts))
+            events.append((current, "🚨 Проверка АВР (Пон.)", "МЗ,ЦПС-1", "Проверка АВР сборки на 0,4кВ захранвани от 3 и 4 БН-НСЕО ОЕОиСКУ", shift))
         if is_last_tuesday_of_quarter(current):
-            events.append((current, "🚨 Проверка ДГ-Б", "ДГ-Б", "Ф.И. на автономен товар не по малко от 60мин.-АСЕО ОЕОиСПКУ", shifts))
+            events.append((current, "🚨 Проверка АВР (Вт.)", "МЗ", "Проверка АВР сборки на 0,4кВ захранвани от 23 и 24 БН-НСЕО ОЕОиСКУ", shift))
         if is_last_wednesday_of_quarter(current):
-            events.append((current, "🚨 Проверка 2АДГ-ДСАПП-4", "2АДГ-ДСАПП-4", "Ф.И на аварийното ел.захранване на СПИ-АСЕО Енергетик ПРАО", shifts))
+            events.append((current, "🚨 Проверка АВР (Ср.)", "МЗ", "Проверка АВР сборки на 0,4кВ съответната с-ма-I (II,III)-блок 3-НСЕО ОЕОиСКУ", shift))
         if is_last_thursday_of_quarter(current):
-            events.append((current, "🚨 Проверка ДГ-КАС", "ДГ-КАС", "Ф.И на автономен товар не по малко от 60мин.-АСЕО ОЕОиСПКУ", shifts))
+            events.append((current, "🚨 Проверка АВР (Четв.)", "МЗ", "Проверка АВР сборки на 0,4кВ съответната с-ма-I (II,III)-блок 4-НСЕО ОЕОиСКУ", shift))
         if is_last_friday_of_quarter(current):
-            events.append((current, "🚨 Проверка ГРТ-ЦАРД", "ГРТ-ЦАРД", "Изпробване на АВР на ел.захранването-ДИС АСЕО Енергетик ПРАО", shifts))
-        if current.day == 25:
-            events.append((current, "🚨 Отчитане електромери", "По методика ДП.ЕД.МТ.1153", "Отчитане електомерите за консумирана ел.енергия-АСЕО ОЕОиСПКУ", shifts))
-        if current.day == 10:
-            events.append((current, "🚨 Проверка ТП1, ТП3", "ТП1,ТП3", "Изпропване на охлаждащите вентилатори на 1ТП и 3ТП чрез ръчно включване-АСЕО", shifts))
-        if current.day == 5 or current.day == 20:
-            events.append((current, "🚨 Измерване стойности по фидери", "Измерване стойностите по фидерите за АКС,СБК-2 и ТРЗ/Бюро пропуски-АСЕО ОЕОиСПКУ", shifts))
-            
+            events.append((current, "🚨 Проверка АВР (Петък)", "МЗ,ХВО и ЦПС-1", "Проверка АВР сборки на 0,4кВ с/без сборки захр.от 3,4,23,24БН,33БН I-III,43БН I-III /-НСЕО ОЕОиСКУ", "Смяна 1"))
+        if current_day == 8:
+            events.append((current, "🚨 Секции 0,4кВ-ГК", "Секции 0,4кВ-ГК 1_4 block", "Проверка АВР на -ШУ и изправността на сигнализацията на панел 'С'БЩУ за повикване в КРУ-ДИС ОЕОиСКУ", "Смяна 1"))
+        if current_day == 18:
+            events.append((current, "🚨 Вентилни отводи", "Вентилни отводи 1 и 3 ТП", "Отчитане на -вентилни отводи-НСЕО ОЕОиСКУ", shift))
+        if current_day == 1:
+            events.append((current, "🚨 Ел.двигатели 6кВ", "Ел.двигатели 6кВ", "Измерване съпротивлението на isoлацията на ел.двиг.6кВ.-ПВТ в резерв,1и 2ППП-НСЕО ОЕОиСКУ", "Смяна 1"))
+        if current_month in [1, 4, 7, 10] and monday_week == 1:
+            events.append((current, "🚨 Проверка ДГ-А", "ДГ-A", "Ф.И. на автономен товар не по малко от 60мин.-НСЕО ОЕОиСКУ", "Смяна 2"))
+        if current_month in [1, 4, 7, 10] and monday_week == 2:
+            events.append((current, "🚨 Проверка ДГ-Б", "ДГ-Б", "Ф.И. на автономен товар не по малко от 60мин.-НСЕО ОЕОиСКУ", "Смяна 2"))
+        if current_month in [1, 4, 7, 10] and wednesday_week == 3:
+            events.append((current, "🚨 Проверка 2АДГ-ДСАПП-4", "2АДГ-ДСАПП-4", "Ф.И на аварийното ел.захранване на СПИ-НСЕО Енергетик ПРАО", "Смяна 2"))
+        if current_month in [1, 4, 7, 10] and thursday_week == 3:
+            events.append((current, "🚨 Проверка ДГ-КАС", "ДГ-КАС", "Ф.И на аварийното ел.захранване на СПИ-НСЕО Енергетик ПРАО", "Смяна 2"))
+        if current_month in [6, 12] and monday_week == 3:
+            events.append((current, "🚨 Проверка ГРТ-ЦНРД", "ГРТ-ЦНРД", "Изпробване на АВР на ел.захранването-ДИС НСЕО Енергетик ПРАО", "Смяна 2"))
+        if current_day == 1:
+            events.append((current, "🚨 Отчитане електромери", "По методика ДП.ЕД.МТ.1153", "Отчитане електомерите за консумирана ел.енергия-НСЕО ОЕОиСКУ", "Смяна 2"))
+        if saturday_week == 3:
+            events.append((current, "🚨 Проверка ТП1, ТП3", "ТП1,ТП3", "Изпробване на охлаждащите вентилатори на 1ТП и 3ТП чрез ръчно включване-НСЕО", "Смяна 2"))
+        if wednesday_week == 3 or saturday_week == 3:
+            events.append((current, "🚨 Измерване стойности по фидери", "По методика ДП.ЕД.МТ.1153", "Измерване стойностите по фидерите за АКС,СБК-2 и ТРЗ/Бюро пропуски-НСЕО ОЕОиСКУ", "Смяна 1"))
+            events.append((current, "🚨 Измерване стойности по фидери", "По методика ДП.ЕД.МТ.1153", "Измерване стойностите по фидерите за АКС,СБК-2 и ТРЗ/Бюро пропуски-НСЕО ОЕОиСКУ", "Смяна 2"))
+            events.append((current, "🚨 Измерване стойности по фидери", "По методика ДП.ЕД.МТ.1153", "Измерване стойностите по фидерите за АКС,СБК-2 и ТРЗ/Бюро пропуски-НСЕО ОЕОиСКУ", "Смяна 3"))
+
         current += timedelta(days=1)
     return events
 
 def send_silent_background_alert(title, message):
+    """Изпраща нотификация с висок приоритет и звук"""
     if platform != 'android':
-        print(f"Фиктивно известие (Не-Android): {title} - {message}")
+        print(f"📱 [ДЕСКТОП] {title} - {message}")
         return
+
     try:
         PythonService = autoclass('org.kivy.android.PythonService')
         Context = autoclass('android.content.Context')
+        Notification = autoclass('android.app.Notification')
         NotificationManager = autoclass('android.app.NotificationManager')
         NotificationChannel = autoclass('android.app.NotificationChannel')
         NotificationBuilder = autoclass('android.app.Notification$Builder')
         RingtoneManager = autoclass('android.media.RingtoneManager')
-        AudioAttributes = autoclass('android.media.AudioAttributes')
         AudioAttributesBuilder = autoclass('android.media.AudioAttributes$Builder')
 
         service = PythonService.mService
         context = service.getApplicationContext()
         notification_manager = service.getSystemService(Context.NOTIFICATION_SERVICE)
 
-        channel_id = "grafik_background_channel"
-        channel_name = "Автоматични Известия"
+        channel_id = "grafik_channel_v2"
+        channel_name = "График Проверки"
         
+        # Вземаме стандартния звук за нотификации
         default_sound_uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
-        # ФИКС 1: Правилно конструиране на AudioAttributes (с .build() на края!)
-        audio_attributes = AudioAttributesBuilder() \
-            .setUsage(AudioAttributes.USAGE_NOTIFICATION) \
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION) \
-            .build()
+        # Създаваме или обновяваме канала
+        channel = notification_manager.getNotificationChannel(channel_id)
+        if channel is None:
+            channel = NotificationChannel(
+                channel_id, 
+                channel_name, 
+                NotificationManager.IMPORTANCE_HIGH  # Висок приоритет
+            )
+            channel.enableLights(True)
+            channel.enableVibration(True)
+            channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC)
+            
+            # Настройка на звука
+            audio_attributes = AudioAttributesBuilder() \
+                .setUsage(AudioAttributesBuilder().USAGE_NOTIFICATION) \
+                .setContentType(AudioAttributesBuilder().CONTENT_TYPE_SONIFICATION) \
+                .build()
+            channel.setSound(default_sound_uri, audio_attributes)
+            notification_manager.createNotificationChannel(channel)
 
-        # ФИКС 2: Ниво на важност IMPORTANCE_HIGH, за да изскочи банер със звук
-        channel = NotificationChannel(channel_id, channel_name, NotificationManager.IMPORTANCE_HIGH)
-        channel.enableLights(True)
-        channel.enableVibration(True)
-        channel.setSound(default_sound_uri, audio_attributes) # Задаваме звука на самия канал
+        # Създаване на нотификацията
+        builder = NotificationBuilder(context, channel_id)
+        builder.setContentTitle(title)
+        builder.setContentText(message)
         
-        notification_manager.createNotificationChannel(channel)
+        # Използваме системна икона (за да избегнем грешки)
+        android_r_drawable = autoclass('android.R$drawable')
+        builder.setSmallIcon(android_r_drawable.ic_dialog_alert)
+        
+        builder.setAutoCancel(True)
+        builder.setSound(default_sound_uri)
+        builder.setPriority(Notification.PRIORITY_HIGH)
+        builder.setVibrate([0, 500, 200, 500])  # Вибрация
 
-        app_info = context.getApplicationInfo()
-        icon_res = app_info.icon
-
-        builder = NotificationBuilder(context, channel_id) \
-            .setContentTitle(title) \
-            .setContentText(message) \
-            .setSmallIcon(icon_res) \
-            .setAutoCancel(True) \
-            .setPriority(NotificationManager.IMPORTANCE_HIGH) \
-            .setSound(default_sound_uri)
-
-        notification_manager.notify(int(time.time()) % 100000, builder.build())
+        # Изпращане на нотификацията
+        notification_id = int(time.time() * 1000) % 100000
+        notification_manager.notify(notification_id, builder.build())
+        print(f"✅ Нотификация изпратена: {title}")
+        
     except Exception as e:
-        print(f"Грешка в сервизното известяване: {str(e)}")
+        print(f"❌ Грешка в сервизното известяване: {e}")
 
-def check_and_notify(yearly_events):
-    now_dt = datetime.now()
-    today_str = now_dt.strftime("%d.%m.%Y")
+def check_and_notify():
+    """Проверява за събития и изпраща нотификации"""
+    now = datetime.now()
+    yearly_events = generate_yearly_schedule(now.year)
     
-    for event_date, title_text, facility_text, check_text, shift_text in yearly_events:
-        if event_date.strftime("%d.%m.%Y") == today_str:
-            # Проверяваме спрямо текущата смяна/час (Напр. Известие в 07:00 сутринта или 19:00)
-            target_hour = 7 if shift_text == 1 else 19
-            if now_dt.hour == target_hour:
+    # Мапинг на смени към часове
+    shift_hours = {
+        "Смяна 1": 23,
+        "Смяна 2": 7,
+        "Смяна 3": 15
+    }
+    
+    for event_date, title, facility, check_text, shift in yearly_events:
+        if event_date.date() == now.date():
+            target_hour = shift_hours.get(shift)
+            
+            # Проверяваме дали текущият час съвпада с часа на смяната
+            if target_hour is not None and now.hour == target_hour:
                 send_silent_background_alert(
-                    f"🚨 СЪБИТИЕ СЕГА: {title_text}",
-                    f"Обект: {facility_text} | {check_text}"
+                    f"🚨 {title}",
+                    f"📍 {facility}\n📋 {check_text}\n⏰ {shift}"
                 )
+                print(f"✅ Изпратена нотификация за: {title} в {now.strftime('%H:%M')}")
+                return True
+    
+    return False
 
+# --- КЛАС ЗА АНДРОИД УСЛУГА ---
+from android import AndroidService
+import threading
+
+class MyNotificationService(AndroidService):
+    def on_start(self):
+        """Стартира фоновата услуга"""
+        print("✅ MyNotificationService стартира успешно!")
+        self.running = True
+        self.last_check_date = None
+        
+        # Стартираме фонова нишка
+        self.thread = threading.Thread(target=self.background_loop)
+        self.thread.daemon = True
+        self.thread.start()
+    
+    def background_loop(self):
+        """Основен цикъл на услугата - проверява на всеки 30 секунди"""
+        print("🔄 Започва фонова проверка...")
+        
+        while self.running:
+            try:
+                now = datetime.now()
+                current_date = now.date()
+                
+                # Проверяваме на всеки 30 секунди
+                print(f"🕐 Проверка в {now.strftime('%H:%M:%S')}")
+                
+                # Проверяваме за събития на всеки час
+                if now.minute == 0 and now.second < 30:
+                    print("⏰ Часова проверка за събития...")
+                    check_and_notify()
+                
+                # Също проверяваме при смяна на деня
+                if self.last_check_date != current_date:
+                    print(f"📅 Нова дата: {current_date.strftime('%d.%m.%Y')}")
+                    check_and_notify()
+                    self.last_check_date = current_date
+                
+                time.sleep(30)  # Спим 30 секунди
+                
+            except Exception as e:
+                print(f"❌ Грешка в услугата: {e}")
+                time.sleep(60)  # При грешка чакаме по-дълго
+    
+    def on_destroy(self):
+        """Спира услугата"""
+        print("🛑 MyNotificationService спира...")
+        self.running = False
+        if self.thread:
+            self.thread.join(timeout=5)
+        print("✅ MyNotificationService спря успешно")
+
+# За тестване на локална машина
 if __name__ == '__main__':
-    # ФИКС 3: Безкраен цикъл, за да работи услугата непрекъснато във фонов режим
-    events_list = generate_yearly_schedule(datetime.now().year)
-    while True:
-        check_and_notify(events_list)
-        time.sleep(3600)  # Проверява на всеки кръгъл час
+    print("🧪 Тест на функцията за проверка...")
+    check_and_notify()
+    print("✅ Тестът завърши")
