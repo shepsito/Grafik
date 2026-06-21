@@ -8,11 +8,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 11
+      # ФИКС: Използваме JDK 17, защото новите Android инструменти го изискват
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '11'
+          java-version: '17'
 
       - name: Install System Dependencies
         run: |
@@ -51,16 +52,15 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-        env:
-          SKIP_JDK_VERSION_CHECK: true
 
       - name: Install SDK components, Link SDK, and detect NDK
         run: |
           SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses || true
+          # Инсталираме необходимите инструменти
           yes | "$SDKMANAGER" "platform-tools" "platforms;android-33" "build-tools;33.0.2" "cmdline-tools;latest" "ndk;25.2.9519653" || true
 
-          # СИМВОЛНА ВРЪЗКА
+          # СИМВОЛНА ВРЪЗКА: Buildozer вижда системното SDK като свое собствено
           mkdir -p "$HOME/.buildozer/android/platform"
           rm -rf "$HOME/.buildozer/android/platform/android-sdk"
           ln -s "$ANDROID_SDK_ROOT" "$HOME/.buildozer/android/platform/android-sdk"
@@ -85,6 +85,7 @@ jobs:
           ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
           ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
         run: |
+          # Проверка за aidl
           if ! ls "$ANDROID_SDK_ROOT/build-tools"/*/aidl >/dev/null 2>&1; then
             echo "❌ aidl не е намерен!"
             exit 1
