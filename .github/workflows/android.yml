@@ -54,14 +54,6 @@ jobs:
           ln -sfn $ANDROID_SDK_ROOT/ndk/25.2.9519653 $ANDROID_SDK_ROOT/android-ndk-r25.2.9519653
           ln -sfn $ANDROID_SDK_ROOT/ndk/25.2.9519653 $ANDROID_SDK_ROOT/ndk-bundle
 
-          # Проверка на инсталацията
-          echo "=== Android SDK contents ==="
-          ls -la $ANDROID_SDK_ROOT
-          echo "=== NDK contents ==="
-          ls -la $ANDROID_SDK_ROOT/ndk/25.2.9519653 || true
-          echo "=== android-ndk symlink ==="
-          ls -la $ANDROID_SDK_ROOT/android-ndk-r25.2.9519653 || true
-
       - name: Setup environment variables
         run: |
           echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
@@ -73,52 +65,44 @@ jobs:
           echo "PATH=$HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools:$PATH" >> $GITHUB_ENV
           echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
 
-      - name: Debug environment
-        run: |
-          echo "=== Environment variables ==="
-          env | grep -E 'ANDROID_|BUILDOZER_|PATH'
-          echo "=== NDK_HOME check ==="
-          ls -la $ANDROID_NDK_HOME || echo "NDK_HOME not found!"
-          echo "=== BUILDOZER_NDK_PATH check ==="
-          ls -la $BUILDOZER_ANDROID_NDK_PATH || echo "BUILDOZER_NDK_PATH not found!"
-
       - name: Create buildozer.spec
         run: |
-          cat > buildozer.spec << 'EOF'
-          [app]
-          title = GrafikProverki
-          package.name = grafikapp
-          package.domain = org.twoman
-          source.dir = .
-          source.include_exts = py,png,jpg,kv,atlas
-          version = 1.0
-          requirements = python3, kivy, pillow, pyjnius
-          orientation = portrait
-          fullscreen = 1
-          android.archs = arm64-v8a
-          android.api = 33
-          android.minapi = 24
-          android.ndk = 25.2.9519653
-          android.sdk = 33
-          android.permissions = POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK, RECEIVE_BOOT_COMPLETED
-          services = mynotificationservice:service.py
-          android.gradle_dependencies = androidx.appcompat:appcompat:1.6.1
-
-          [buildozer]
-          log_level = 2
-          EOF
+          echo "[app]" > buildozer.spec
+          echo "title = GrafikProverki" >> buildozer.spec
+          echo "package.name = grafikapp" >> buildozer.spec
+          echo "package.domain = org.twoman" >> buildozer.spec
+          echo "source.dir = ." >> buildozer.spec
+          echo "source.include_exts = py,png,jpg,kv,atlas" >> buildozer.spec
+          echo "version = 1.0" >> buildozer.spec
+          echo "requirements = python3, kivy, pillow, pyjnius" >> buildozer.spec
+          echo "orientation = portrait" >> buildozer.spec
+          echo "fullscreen = 1" >> buildozer.spec
+          echo "android.archs = arm64-v8a" >> buildozer.spec
+          echo "android.api = 33" >> buildozer.spec
+          echo "android.minapi = 24" >> buildozer.spec
+          echo "android.ndk = 25.2.9519653" >> buildozer.spec
+          echo "android.sdk = 33" >> buildozer.spec
+          echo "android.permissions = POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK, RECEIVE_BOOT_COMPLETED" >> buildozer.spec
+          echo "services = mynotificationservice:service.py" >> buildozer.spec
+          echo "android.gradle_dependencies = androidx.appcompat:appcompat:1.6.1" >> buildozer.spec
+          echo "" >> buildozer.spec
+          echo "[buildozer]" >> buildozer.spec
+          echo "log_level = 2" >> buildozer.spec
+          echo "android_sdk_path = /home/runner/android-sdk" >> buildozer.spec
+          echo "android_ndk_path = /home/runner/android-sdk/android-ndk-r25.2.9519653" >> buildozer.spec
+          echo "p4a.branch = master" >> buildozer.spec
+          echo "p4a.ndk = 25.2.9519653" >> buildozer.spec
+          echo "p4a.sdk = 33" >> buildozer.spec
 
       - name: Build APK with Buildozer
         env:
           APP_ANDROID_ACCEPT_SDK_LICENSE: "1"
         run: |
-          # Изрично задаваме пътищата за buildozer
           export ANDROID_SDK_ROOT=$HOME/android-sdk
           export ANDROID_NDK_HOME=$HOME/android-sdk/android-ndk-r25.2.9519653
           export BUILDOZER_ANDROID_SDK_PATH=$HOME/android-sdk
           export BUILDOZER_ANDROID_NDK_PATH=$HOME/android-sdk/android-ndk-r25.2.9519653
           
-          echo "Using NDK at: $BUILDOZER_ANDROID_NDK_PATH"
           buildozer -vvv android debug
 
       - name: Upload APK
