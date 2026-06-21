@@ -36,7 +36,6 @@ jobs:
           echo 'source.dir = .' >> buildozer.spec
           echo 'source.include_exts = py,png,jpg,kv,atlas' >> buildozer.spec
           echo 'version = 1.0' >> buildozer.spec
-          # ФИКС: Използваме гъвкаво python3 вместо конкретна версия
           echo 'requirements = python3, kivy, pillow, pyjnius' >> buildozer.spec
           echo 'orientation = portrait' >> buildozer.spec
           echo 'fullscreen = 1' >> buildozer.spec
@@ -53,15 +52,27 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Download Android NDK
+      - name: Install SDK components and accept licenses
         run: |
-          mkdir -p /home/runner/.buildozer/android/platform
-          cd /home/runner/.buildozer/android/platform
-          if [ ! -d "android-ndk-r25.2.9519653" ]; then
-            wget -q https://dl.google.com/android/repository/android-ndk-r25.2.9519653-linux.zip
-            unzip -q android-ndk-r25.2.9519653-linux.zip
-            rm android-ndk-r25.2.9519653-linux.zip
-          fi
+          # SDKMANAGER се намира в cmdline-tools/latest/bin/sdkmanager
+          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          
+          # Приемане на лицензите
+          yes | "$SDKMANAGER" --licenses || true
+          
+          # Инсталиране на необходимите компоненти
+          "$SDKMANAGER" "platform-tools" "platforms;android-33" "build-tools;33.0.0" "ndk;25.2.9519653"
+
+      - name: Set Environment Variables
+        run: |
+          # Експортираме NDK_HOME, за да го намери Buildozer
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/25.2.9519653" >> $GITHUB_ENV
+
+      - name: Buildozer Diagnostics
+        run: |
+          echo "ANDROID_NDK_HOME: $ANDROID_NDK_HOME"
+          ls -la "$ANDROID_NDK_HOME" || echo "NDK path not found!"
 
       - name: Build APK with Buildozer
         env:
