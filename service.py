@@ -63,33 +63,39 @@ def send_notification(title, message, notification_id=None):
             notification_id = int(time.time() * 1000) % 100000
         
         notification_manager.notify(notification_id, builder.build())
-        print(f"✅ Нотификация: {clean_title}")
+        print(f"✅ НОТИФИКАЦИЯ ИЗПРАТЕНА: {clean_title}")
         return True
     except Exception as e:
-        print(f"❌ Грешка в нотификация: {e}")
+        print(f"❌ ГРЕШКА ПРИ НОТИФИКАЦИЯ: {e}")
         return False
 
 def check_and_notify():
     """Проверява за събития само в 07:00, 15:00 и 23:00"""
     now = datetime.now()
     current_hour = now.hour
+    current_date = now.date()
+    
+    print(f"🔍 [DEBUG] Проверка в {current_hour}:00 на {current_date}")
     
     # Проверяваме само в трите часа
     if current_hour not in [7, 15, 23]:
-        print(f"⏰ Пропускам проверка в {current_hour}:00 - не е час за събитие")
+        print(f"⏰ [DEBUG] Пропускам - не е час за събитие")
         return False
     
-    print(f"🔍 Проверка за събития в {current_hour}:00...")
+    print(f"🔍 [DEBUG] Търся събития за {current_hour}:00...")
     events = generate_yearly_schedule(now.year)
     
     # Намираме събитията за днес в този час
     today_events = []
     for event in events:
-        if event['datetime'].date() == now.date() and event['datetime'].hour == current_hour:
+        event_date = event['datetime'].date()
+        event_hour = event['datetime'].hour
+        if event_date == current_date and event_hour == current_hour:
             today_events.append(event)
+            print(f"  📌 [DEBUG] Намерено: {event['title']} в {event_hour}:00")
     
     if not today_events:
-        print(f"📭 Няма събития в {current_hour}:00")
+        print(f"📭 [DEBUG] Няма събития в {current_hour}:00")
         return False
     
     # Изпращаме нотификации за всяко събитие
@@ -99,15 +105,16 @@ def check_and_notify():
         message = f"{event['facility']} | {event['shift']}\n{event['description']}"
         
         event_id = int(f"{event['datetime'].timestamp()}"[-6:])
+        print(f"📤 [DEBUG] Изпращам нотификация: {title}")
         send_notification(title, message, event_id)
         notifications_sent += 1
     
-    print(f"✅ Изпратени {notifications_sent} нотификации за {current_hour}:00")
+    print(f"✅ [DEBUG] ИЗПРАТЕНИ {notifications_sent} НОТИФИКАЦИИ")
     return True
 
 class MyNotificationService(AndroidService):
     def on_start(self):
-        print("🚀 Service START - оптимизиран режим")
+        print("🚀 [SERVICE] START - оптимизиран режим")
         self.running = True
         self.last_date = None
         self.last_check_hour = None
@@ -118,7 +125,7 @@ class MyNotificationService(AndroidService):
     
     def background_loop(self):
         """Проверява само в 07:00, 15:00 и 23:00"""
-        print("🔄 Фонов режим - проверка само в 07:00, 15:00 и 23:00")
+        print("🔄 [SERVICE] Фонов режим - проверка само в 07:00, 15:00 и 23:00")
         
         while self.running:
             try:
@@ -126,37 +133,40 @@ class MyNotificationService(AndroidService):
                 current_hour = now.hour
                 current_minute = now.minute
                 
-                # Проверяваме само в точните часове (в първата минута)
+                # Проверяваме само в точните часове
                 if current_minute < 2 and current_hour in [7, 15, 23]:
                     if self.last_check_hour != current_hour:
-                        print(f"⏰ Часова проверка в {current_hour}:00")
-                        check_and_notify()
+                        print(f"⏰ [SERVICE] ЧАСОВА ПРОВЕРКА в {current_hour}:00")
+                        result = check_and_notify()
+                        if result:
+                            print(f"✅ [SERVICE] Нотификациите са изпратени успешно!")
+                        else:
+                            print(f"ℹ️ [SERVICE] Няма събития в {current_hour}:00")
                         self.last_check_hour = current_hour
                 else:
-                    # Нулираме часовника, за да може да проверява отново
+                    # Нулираме часовника
                     if current_hour not in [7, 15, 23]:
                         self.last_check_hour = None
                 
                 # Проверка при смяна на деня
                 if self.last_date != now.date():
-                    print(f"📅 Нова дата: {now.strftime('%d.%m.%Y')}")
+                    print(f"📅 [SERVICE] Нова дата: {now.strftime('%d.%m.%Y')}")
                     self.last_date = now.date()
-                    self.last_check_hour = None  # Нулираме за новия ден
+                    self.last_check_hour = None
                 
-                # Спим 30 секунди, за да не натоварваме процесора
                 time.sleep(30)
                 
             except Exception as e:
-                print(f"❌ Грешка в услугата: {e}")
+                print(f"❌ [SERVICE] ГРЕШКА: {e}")
                 time.sleep(60)
     
     def on_destroy(self):
-        print("🛑 Service STOP")
+        print("🛑 [SERVICE] STOP")
         self.running = False
         if self.thread:
             self.thread.join(timeout=5)
-        print("✅ Service STOPPED")
+        print("✅ [SERVICE] STOPPED")
 
 if __name__ == "__main__":
-    print("Тест...")
+    print("🧪 [TEST] Тест на услугата...")
     check_and_notify()
