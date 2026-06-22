@@ -8,38 +8,42 @@ from kivy.clock import Clock
 from kivy.utils import platform
 from kivy.core.window import Window
 from kivy.graphics import Color, Rectangle
+from kivy.uix.widget import Widget
 
 from service_logic import generate_yearly_schedule, get_shift_hours
 
 # Настройки на прозореца
-Window.clearcolor = (0.08, 0.08, 0.12, 1)
+Window.clearcolor = (0.05, 0.05, 0.08, 1)
 
 class MainWidget(BoxLayout):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.orientation = 'vertical'
-        self.padding = 15
-        self.spacing = 10
+        self.padding = [15, 10, 15, 10]
+        self.spacing = 8
         
-        # Заглавие
+        # --- ЗАГЛАВИЕ ---
         self.add_widget(Label(
             text="📋 ГРАФИК ПРОВЕРКИ",
-            font_size='26sp',
+            font_size='28sp',
             bold=True,
             color=(0.3, 0.9, 0.3, 1),
-            size_hint_y=0.08
+            size_hint_y=0.06,
+            halign='center'
         ))
+        
+        # Разделител
+        self.add_widget(Widget(size_hint_y=0.01))
         
         # --- ПОСЛЕДНО МИНАЛО СЪБИТИЕ ---
         self.past_box = BoxLayout(
             orientation='vertical',
-            padding=10,
+            padding=[15, 10, 15, 10],
             spacing=5,
-            size_hint_y=None,
-            height=100
+            size_hint_y=0.22
         )
         with self.past_box.canvas.before:
-            Color(0.15, 0.15, 0.2, 1)
+            Color(0.15, 0.12, 0.18, 1)
             self.past_rect = Rectangle()
         self.past_box.bind(size=self._update_rect, pos=self._update_rect)
         
@@ -48,32 +52,35 @@ class MainWidget(BoxLayout):
             bold=True,
             color=(0.7, 0.7, 0.7, 1),
             font_size='13sp',
-            size_hint_y=0.3,
+            size_hint_y=0.25,
             halign='left'
         )
         self.past_box.add_widget(self.past_label)
         
         self.past_content = Label(
             text="Няма минали събития",
-            color=(0.9, 0.9, 0.9, 1),
-            font_size='15sp',
-            size_hint_y=0.7,
+            color=(0.9, 0.8, 0.8, 1),
+            font_size='14sp',
+            size_hint_y=0.75,
             halign='left',
-            text_size=(Window.width - 50, None)
+            text_size=(Window.width - 60, None),
+            markup=True
         )
         self.past_box.add_widget(self.past_content)
         self.add_widget(self.past_box)
         
+        # Разстояние
+        self.add_widget(Widget(size_hint_y=0.01))
+        
         # --- СЛЕДВАЩО СЪБИТИЕ ---
         self.next_box = BoxLayout(
             orientation='vertical',
-            padding=10,
+            padding=[15, 10, 15, 10],
             spacing=5,
-            size_hint_y=None,
-            height=100
+            size_hint_y=0.22
         )
         with self.next_box.canvas.before:
-            Color(0.1, 0.2, 0.15, 1)
+            Color(0.08, 0.18, 0.12, 1)
             self.next_rect = Rectangle()
         self.next_box.bind(size=self._update_rect2, pos=self._update_rect2)
         
@@ -82,7 +89,7 @@ class MainWidget(BoxLayout):
             bold=True,
             color=(0.7, 0.7, 0.7, 1),
             font_size='13sp',
-            size_hint_y=0.3,
+            size_hint_y=0.25,
             halign='left'
         )
         self.next_box.add_widget(self.next_label)
@@ -90,62 +97,71 @@ class MainWidget(BoxLayout):
         self.next_content = Label(
             text="Няма предстоящи събития",
             color=(0.4, 0.9, 0.4, 1),
-            font_size='15sp',
-            size_hint_y=0.7,
+            font_size='14sp',
+            size_hint_y=0.75,
             halign='left',
-            text_size=(Window.width - 50, None)
+            text_size=(Window.width - 60, None),
+            markup=True
         )
         self.next_box.add_widget(self.next_content)
         self.add_widget(self.next_box)
         
-        # --- ВСИЧКИ СЪБИТИЯ ДНЕС ---
+        # Разстояние
+        self.add_widget(Widget(size_hint_y=0.01))
+        
+        # --- ДНЕШНИ СЪБИТИЯ ---
         self.today_label = Label(
             text="📅 СЪБИТИЯ ДНЕС",
             bold=True,
-            color=(0.8, 0.8, 0.2, 1),
+            color=(0.9, 0.8, 0.2, 1),
             font_size='14sp',
-            size_hint_y=0.05
+            size_hint_y=0.04,
+            halign='center'
         )
         self.add_widget(self.today_label)
         
         # Scroll за днешните събития
-        self.today_scroll = ScrollView(size_hint=(1, 0.35))
+        self.today_scroll = ScrollView(size_hint=(1, 0.30))
         self.today_box = BoxLayout(
             orientation='vertical',
-            spacing=8,
-            size_hint_y=None
+            spacing=6,
+            size_hint_y=None,
+            padding=[5, 5, 5, 5]
         )
         self.today_box.bind(minimum_height=self.today_box.setter('height'))
         self.today_scroll.add_widget(self.today_box)
         self.add_widget(self.today_scroll)
         
+        # Разстояние
+        self.add_widget(Widget(size_hint_y=0.01))
+        
         # --- ДОЛЕН ПАНЕЛ ---
         bottom_box = BoxLayout(
             orientation='vertical',
-            size_hint_y=0.08,
-            spacing=2
+            size_hint_y=0.07,
+            spacing=3
         )
         
         self.status_label = Label(
             text="🟢 Приложението работи",
             color=(0.3, 0.8, 0.3, 1),
-            font_size='12sp'
+            font_size='11sp'
         )
         bottom_box.add_widget(self.status_label)
         
-        btn_box = BoxLayout(size_hint_y=0.5)
+        btn_box = BoxLayout(size_hint_y=0.5, spacing=10)
         check_btn = Button(
             text="🔍 Провери сега",
             background_color=(0.2, 0.5, 0.8, 1),
-            font_size='13sp'
+            font_size='12sp'
         )
         check_btn.bind(on_press=self.check_now)
         btn_box.add_widget(check_btn)
         
         refresh_btn = Button(
             text="🔄 Обнови",
-            background_color=(0.3, 0.3, 0.4, 1),
-            font_size='13sp'
+            background_color=(0.25, 0.25, 0.35, 1),
+            font_size='12sp'
         )
         refresh_btn.bind(on_press=self.refresh_data)
         btn_box.add_widget(refresh_btn)
@@ -198,85 +214,92 @@ class MainWidget(BoxLayout):
         now = datetime.now()
         today = now.date()
         
-        # Намираме събитията за днес
-        today_events = [e for e in self.yearly_events if e[0].date() == today]
-        
         # --- ПОСЛЕДНО МИНАЛО ---
-        past_events = [e for e in self.yearly_events if e[0] < now]
+        past_events = [e for e in self.yearly_events if e['datetime'] < now]
         if past_events:
-            last_event = past_events[-1]
+            last = past_events[-1]
+            dt = last['datetime'].strftime('%d.%m.%Y %H:%M')
             self.past_content.text = (
-                f"{last_event[0].strftime('%d.%m.%Y %H:%M')}\n"
-                f"{last_event[1]}\n"
-                f"{last_event[2]} | {last_event[3]}"
+                f"[b]{dt}[/b]\n"
+                f"{last['title']}\n"
+                f"📍 {last['facility']}  |  {last['shift']}"
             )
         else:
             self.past_content.text = "📭 Няма минали събития"
         
         # --- СЛЕДВАЩО СЪБИТИЕ ---
-        future_events = [e for e in self.yearly_events if e[0] > now]
+        future_events = [e for e in self.yearly_events if e['datetime'] > now]
         if future_events:
-            next_event = future_events[0]
-            time_left = next_event[0] - now
+            next_ev = future_events[0]
+            dt = next_ev['datetime'].strftime('%d.%m.%Y %H:%M')
+            time_left = next_ev['datetime'] - now
             hours = int(time_left.total_seconds() / 3600)
             minutes = int((time_left.total_seconds() % 3600) / 60)
             
             self.next_content.text = (
-                f"{next_event[0].strftime('%d.%m.%Y %H:%M')}\n"
-                f"{next_event[1]}\n"
-                f"{next_event[2]} | {next_event[3]}\n"
-                f"⏳ След {hours}h {minutes}m"
+                f"[b]{dt}[/b]\n"
+                f"{next_ev['title']}\n"
+                f"📍 {next_ev['facility']}  |  {next_ev['shift']}\n"
+                f"⏳ [color=00ff00]След {hours}h {minutes}m[/color]"
             )
         else:
             self.next_content.text = "🎉 Няма предстоящи събития"
         
         # --- ДНЕШНИ СЪБИТИЯ ---
         self.today_box.clear_widgets()
+        today_events = [e for e in self.yearly_events if e['datetime'].date() == today]
         
         if today_events:
             # Групираме по час
             events_by_time = {}
             for e in today_events:
-                time_key = e[0].strftime('%H:%M')
+                time_key = e['datetime'].strftime('%H:%M')
                 if time_key not in events_by_time:
                     events_by_time[time_key] = []
                 events_by_time[time_key].append(e)
             
             # Показваме групираните събития
             for time_key, event_list in sorted(events_by_time.items()):
+                # Заглавие на часа
                 hour_label = Label(
-                    text=f"🕐 {time_key} - {len(event_list)} събития",
+                    text=f"🕐 {time_key}  ({len(event_list)} събития)",
                     bold=True,
-                    color=(0.6, 0.8, 1, 1),
+                    color=(0.5, 0.8, 1, 1),
                     font_size='13sp',
                     size_hint_y=None,
-                    height=25
+                    height=28,
+                    halign='left'
                 )
                 self.today_box.add_widget(hour_label)
                 
-                for event in event_list:
-                    status = "✅" if event[0] < now else "⏳"
-                    event_text = (
-                        f"{status} {event[1]}\n"
-                        f"   {event[2]} | {event[3]}"
+                # Събития
+                for ev in event_list:
+                    status = "✅" if ev['datetime'] < now else "⏳"
+                    ev_text = (
+                        f"{status}  {ev['title']}\n"
+                        f"    📍 {ev['facility']}  |  {ev['shift']}"
                     )
-                    event_label = Label(
-                        text=event_text,
+                    ev_label = Label(
+                        text=ev_text,
                         color=(0.9, 0.9, 0.9, 1),
                         font_size='12sp',
                         size_hint_y=None,
-                        height=40,
+                        height=32,
                         halign='left',
                         text_size=(Window.width - 60, None)
                     )
-                    self.today_box.add_widget(event_label)
+                    self.today_box.add_widget(ev_label)
+                
+                # Разстояние между групите
+                self.today_box.add_widget(Widget(size_hint_y=None, height=4))
         else:
             self.today_box.add_widget(Label(
                 text="📭 Няма събития за днес",
-                color=(0.6, 0.6, 0.6, 1),
+                color=(0.5, 0.5, 0.5, 1),
                 font_size='14sp',
                 size_hint_y=None,
-                height=40
+                height=35,
+                halign='center'
             ))
     
     def check_now(self, *args):
