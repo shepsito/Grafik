@@ -29,7 +29,7 @@ class MainWidget(BoxLayout):
         # --- ЗАГЛАВИЕ ---
         self.add_widget(Label(
             text="[b]ГРАФИК ПРОВЕРКИ[/b]",
-            font_size=sp(32),
+            font_size=sp(36),
             bold=True,
             color=(0.3, 0.9, 0.3, 1),
             size_hint_y=0.06,
@@ -39,7 +39,7 @@ class MainWidget(BoxLayout):
         
         self.add_widget(Widget(size_hint_y=0.01))
         
-        # --- ПОСЛЕДНО МИНАЛО СЪБИТИЕ (с description) ---
+        # --- ПОСЛЕДНО МИНАЛО СЪБИТИЕ ---
         self.past_box = BoxLayout(
             orientation='vertical',
             padding=[dp(15), dp(10), dp(15), dp(10)],
@@ -55,7 +55,7 @@ class MainWidget(BoxLayout):
             text="[b]<< МИНАЛО СЪБИТИЕ[/b]",
             bold=True,
             color=(0.8, 0.7, 0.7, 1),
-            font_size=sp(14),
+            font_size=sp(16),
             size_hint_y=0.18,
             halign='left',
             markup=True
@@ -65,7 +65,7 @@ class MainWidget(BoxLayout):
         self.past_content = Label(
             text="Няма минали събития",
             color=(0.9, 0.8, 0.8, 1),
-            font_size=sp(15),
+            font_size=sp(18),
             size_hint_y=0.82,
             halign='left',
             text_size=(Window.width - dp(60), None),
@@ -76,7 +76,7 @@ class MainWidget(BoxLayout):
         
         self.add_widget(Widget(size_hint_y=0.01))
         
-        # --- СЛЕДВАЩО СЪБИТИЕ (с description) ---
+        # --- СЛЕДВАЩО СЪБИТИЕ ---
         self.next_box = BoxLayout(
             orientation='vertical',
             padding=[dp(15), dp(10), dp(15), dp(10)],
@@ -92,7 +92,7 @@ class MainWidget(BoxLayout):
             text="[b]>> СЛЕДВАЩО СЪБИТИЕ[/b]",
             bold=True,
             color=(0.7, 0.8, 0.7, 1),
-            font_size=sp(14),
+            font_size=sp(16),
             size_hint_y=0.18,
             halign='left',
             markup=True
@@ -102,7 +102,7 @@ class MainWidget(BoxLayout):
         self.next_content = Label(
             text="Няма предстоящи събития",
             color=(0.4, 0.9, 0.4, 1),
-            font_size=sp(15),
+            font_size=sp(18),
             size_hint_y=0.82,
             halign='left',
             text_size=(Window.width - dp(60), None),
@@ -118,7 +118,7 @@ class MainWidget(BoxLayout):
             text="[b]ДНЕС[/b]",
             bold=True,
             color=(0.9, 0.8, 0.2, 1),
-            font_size=sp(16),
+            font_size=sp(17),
             size_hint_y=0.04,
             halign='center',
             markup=True
@@ -141,23 +141,23 @@ class MainWidget(BoxLayout):
         # --- ДОЛЕН ПАНЕЛ ---
         bottom_box = BoxLayout(
             orientation='vertical',
-            size_hint_y=0.08,
+            size_hint_y=0.10,
             spacing=dp(3)
         )
         
         self.status_label = Label(
             text="[color=33cc33]АКТИВНО[/color]",
             color=(0.3, 0.8, 0.3, 1),
-            font_size=sp(12),
+            font_size=sp(14),
             markup=True
         )
         bottom_box.add_widget(self.status_label)
         
-        btn_box = BoxLayout(size_hint_y=0.5, spacing=dp(10))
+        btn_box = BoxLayout(size_hint_y=0.55, spacing=dp(10))
         check_btn = Button(
             text="ПРОВЕРКА",
             background_color=(0.2, 0.5, 0.8, 1),
-            font_size=sp(14),
+            font_size=sp(16),
             bold=True
         )
         check_btn.bind(on_press=self.check_now)
@@ -166,11 +166,20 @@ class MainWidget(BoxLayout):
         refresh_btn = Button(
             text="ОБНОВИ",
             background_color=(0.25, 0.25, 0.35, 1),
-            font_size=sp(14),
+            font_size=sp(16),
             bold=True
         )
         refresh_btn.bind(on_press=self.refresh_data)
         btn_box.add_widget(refresh_btn)
+        
+        debug_btn = Button(
+            text="🐛 DEBUG",
+            background_color=(0.4, 0.2, 0.2, 1),
+            font_size=sp(14),
+            bold=True
+        )
+        debug_btn.bind(on_press=self.debug_info)
+        btn_box.add_widget(debug_btn)
         
         bottom_box.add_widget(btn_box)
         self.add_widget(bottom_box)
@@ -179,6 +188,7 @@ class MainWidget(BoxLayout):
         self.yearly_events = []
         self.load_events()
         
+        # Актуализация на всеки час
         Clock.schedule_interval(self.update_display, 3600)
         
         if platform == 'android':
@@ -200,8 +210,9 @@ class MainWidget(BoxLayout):
                 Permission.VIBRATE,
                 Permission.WAKE_LOCK
             ])
+            print("✅ Разрешенията са дадени")
         except Exception as e:
-            print(f"Грешка: {e}")
+            print(f"❌ Грешка при разрешения: {e}")
     
     def load_events(self):
         try:
@@ -213,17 +224,17 @@ class MainWidget(BoxLayout):
     
     def refresh_data(self, *args):
         self.load_events()
+        print("🔄 Данните са обновени")
     
     def update_display(self, *args):
         now = datetime.now()
         today = now.date()
         
-        # --- ПОСЛЕДНО МИНАЛО (с description) ---
+        # --- ПОСЛЕДНО МИНАЛО ---
         past_events = [e for e in self.yearly_events if e['datetime'] < now]
         if past_events:
             last = past_events[-1]
             dt = last['datetime'].strftime('%d.%m.%Y %H:%M')
-            # Премахваме 🚨 от заглавието за Android
             title = last['title'].replace('🚨', '').strip()
             self.past_content.text = (
                 f"[b]{dt}[/b]\n"
@@ -234,7 +245,7 @@ class MainWidget(BoxLayout):
         else:
             self.past_content.text = "[i]Няма минали събития[/i]"
         
-        # --- СЛЕДВАЩО СЪБИТИЕ (с description) ---
+        # --- СЛЕДВАЩО СЪБИТИЕ ---
         future_events = [e for e in self.yearly_events if e['datetime'] > now]
         if future_events:
             next_ev = future_events[0]
@@ -242,7 +253,6 @@ class MainWidget(BoxLayout):
             time_left = next_ev['datetime'] - now
             hours = int(time_left.total_seconds() / 3600)
             minutes = int((time_left.total_seconds() % 3600) / 60)
-            # Премахваме 🚨 от заглавието за Android
             title = next_ev['title'].replace('🚨', '').strip()
             self.next_content.text = (
                 f"[b]{dt}[/b]\n"
@@ -267,12 +277,11 @@ class MainWidget(BoxLayout):
                 events_by_time[time_key].append(e)
             
             for time_key, event_list in sorted(events_by_time.items()):
-                # Заглавие на часа
                 hour_label = Label(
                     text=f"[b]{time_key}  ({len(event_list)} бр.)[/b]",
                     bold=True,
                     color=(0.5, 0.8, 1, 1),
-                    font_size=sp(15),
+                    font_size=sp(17),
                     size_hint_y=None,
                     height=dp(32),
                     halign='left',
@@ -282,7 +291,6 @@ class MainWidget(BoxLayout):
                 
                 for ev in event_list:
                     status = "[OK]" if ev['datetime'] < now else "[  ]"
-                    # Премахваме 🚨 от заглавието за Android
                     title = ev['title'].replace('🚨', '').strip()
                     ev_text = (
                         f"{status}  {title}\n"
@@ -291,7 +299,7 @@ class MainWidget(BoxLayout):
                     ev_label = Label(
                         text=ev_text,
                         color=(0.9, 0.9, 0.9, 1),
-                        font_size=sp(13),
+                        font_size=sp(15),
                         size_hint_y=None,
                         height=dp(36),
                         halign='left',
@@ -312,27 +320,131 @@ class MainWidget(BoxLayout):
                 markup=True
             ))
     
+    def debug_info(self, *args):
+        """Показва debug информация за събитията"""
+        print("\n" + "="*50)
+        print("🐛 DEBUG ИНФОРМАЦИЯ")
+        print("="*50)
+        
+        now = datetime.now()
+        print(f"📱 Текущо време: {now.strftime('%H:%M:%S')}")
+        print(f"📅 Текуща дата: {now.strftime('%d.%m.%Y')}")
+        print(f"⏰ Текущ час: {now.hour}:00")
+        print("-"*50)
+        
+        # Всички събития за днес
+        today_events = [e for e in self.yearly_events if e['datetime'].date() == now.date()]
+        print(f"📊 Събития днес: {len(today_events)}")
+        
+        if today_events:
+            for e in today_events:
+                status = "✅" if e['datetime'] < now else "⏳"
+                print(f"  {status} {e['datetime'].strftime('%H:%M')} - {e['title']} ({e['shift']})")
+        else:
+            print("  📭 Няма събития за днес")
+        
+        print("-"*50)
+        
+        # Събития в текущия час
+        hour_events = [e for e in today_events if e['datetime'].hour == now.hour]
+        print(f"🔔 Събития в {now.hour}:00: {len(hour_events)}")
+        
+        if hour_events:
+            for e in hour_events:
+                print(f"  ✅ {e['title']} - {e['facility']}")
+                print(f"     📝 {e['description']}")
+        else:
+            print("  ⏰ Няма събития в този час")
+        
+        print("-"*50)
+        
+        # Следващо събитие
+        future_events = [e for e in self.yearly_events if e['datetime'] > now]
+        if future_events:
+            next_ev = future_events[0]
+            time_left = next_ev['datetime'] - now
+            hours = int(time_left.total_seconds() / 3600)
+            minutes = int((time_left.total_seconds() % 3600) / 60)
+            print(f"⏰ Следващо събитие: {next_ev['datetime'].strftime('%d.%m.%Y %H:%M')}")
+            print(f"   {next_ev['title']}")
+            print(f"   След {hours}h {minutes}m")
+        else:
+            print("🎉 Няма предстоящи събития")
+        
+        print("="*50 + "\n")
+        
+        self.status_label.text = "[color=ffcc00]🐛 DEBUG ВИЖ ЛОГА[/color]"
+    
     def check_now(self, *args):
+        """Ръчна проверка с изпращане на нотификации"""
         try:
-            from service import check_and_notify
-            result = check_and_notify()
-            if result:
-                self.status_label.text = "[color=33cc33]ИЗПРАТЕНИ![/color]"
+            from service import check_and_notify, send_notification
+            
+            print("\n" + "="*50)
+            print("🔍 [DEBUG] РЪЧНА ПРОВЕРКА")
+            print("="*50)
+            
+            now = datetime.now()
+            print(f"📱 Текущо време: {now.strftime('%H:%M:%S')}")
+            print(f"📅 Текуща дата: {now.strftime('%d.%m.%Y')}")
+            print(f"⏰ Текущ час: {now.hour}:00")
+            
+            # Проверка на събитията
+            from service_logic import generate_yearly_schedule
+            events = generate_yearly_schedule(now.year)
+            today_events = [e for e in events if e['datetime'].date() == now.date()]
+            hour_events = [e for e in today_events if e['datetime'].hour == now.hour]
+            
+            print(f"📊 Събития днес: {len(today_events)}")
+            print(f"📊 Събития в {now.hour}:00: {len(hour_events)}")
+            
+            for e in hour_events:
+                print(f"  ✅ {e['title']} - {e['facility']}")
+            
+            # Изпращаме тестова нотификация
+            print("\n📤 Изпращам ТЕСТОВА нотификация...")
+            test_result = send_notification(
+                "🧪 ТЕСТОВА НОТИФИКАЦИЯ", 
+                "Ако виждате това - нотификациите работят!"
+            )
+            
+            if test_result:
+                print("✅ Тестовата нотификация е изпратена!")
             else:
-                self.status_label.text = "[color=ffcc00]НЯМА СЪБИТИЯ[/color]"
+                print("❌ Тестовата нотификация НЕ Е изпратена!")
+            
+            # Проверяваме за реални събития
+            print("\n🔍 Проверка за реални събития...")
+            result = check_and_notify()
+            
+            if result:
+                self.status_label.text = "[color=33cc33]✅ ИЗПРАТЕНИ![/color]"
+                print("✅ Реалните нотификации са изпратени!")
+            elif hour_events:
+                self.status_label.text = "[color=ff6600]⚠️ ИМА СЪБИТИЯ, НО НЕ СА ИЗПРАТЕНИ[/color]"
+                print("⚠️ Има събития, но не са изпратени - проверете услугата!")
+            else:
+                self.status_label.text = "[color=ffcc00]ℹ️ НЯМА СЪБИТИЯ[/color]"
+                print("ℹ️ Няма събития в този час")
+            
+            print("="*50 + "\n")
             self.update_display()
+            
         except Exception as e:
-            self.status_label.text = f"[color=ff3333]ГРЕШКА[/color]"
+            self.status_label.text = f"[color=ff3333]❌ ГРЕШКА: {str(e)[:30]}[/color]"
+            print(f"❌ ГРЕШКА: {e}")
+            import traceback
+            traceback.print_exc()
 
 class NotificationApp(App):
     def build(self):
         return MainWidget()
     
     def on_start(self):
-        print("Приложението стартира")
+        print("🚀 Приложението стартира")
     
     def on_stop(self):
-        print("Приложението спира")
+        print("🛑 Приложението спира")
 
 if __name__ == "__main__":
     NotificationApp().run()
