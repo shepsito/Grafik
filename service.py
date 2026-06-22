@@ -6,7 +6,7 @@ import threading
 from service_logic import generate_yearly_schedule, get_shift_hours
 
 def send_notification(title, message, notification_id=None):
-    """Изпраща нотификация със звук и вибрация - БЕЗ EMOJI"""
+    """Изпраща нотификация със звук и вибрация"""
     try:
         from jnius import autoclass
         
@@ -46,10 +46,13 @@ def send_notification(title, message, notification_id=None):
             channel.setSound(default_sound, audio_attributes)
             notification_manager.createNotificationChannel(channel)
         
-        # Създаваме нотификация
+        # Премахваме иконите
+        clean_title = title.replace('🚨', '').strip()
+        clean_message = message.replace('📍', '').replace('📋', '').strip()
+        
         builder = NotificationBuilder(context, channel_id)
-        builder.setContentTitle(title.replace('🚨', '!'))  # Премахваме emoji
-        builder.setContentText(message.replace('📍', '').replace('📋', ''))  # Премахваме emoji
+        builder.setContentTitle(clean_title)
+        builder.setContentText(clean_message)
         builder.setSmallIcon(autoclass('android.R$drawable').ic_dialog_alert)
         builder.setAutoCancel(True)
         builder.setSound(default_sound)
@@ -60,78 +63,91 @@ def send_notification(title, message, notification_id=None):
             notification_id = int(time.time() * 1000) % 100000
         
         notification_manager.notify(notification_id, builder.build())
-        print(f"✅ Нотификация: {title}")
+        print(f"✅ Нотификация: {clean_title}")
         return True
     except Exception as e:
         print(f"❌ Грешка в нотификация: {e}")
         return False
 
 def check_and_notify():
-    """Проверява за събития и изпраща нотификации"""
+    """Проверява за събития само в 07:00, 15:00 и 23:00"""
     now = datetime.now()
-    events = generate_yearly_schedule(now.year)
+    current_hour = now.hour
     
-    today_events = [e for e in events if e['datetime'].date() == now.date()]
-    
-    if not today_events:
+    # Проверяваме само в трите часа
+    if current_hour not in [7, 15, 23]:
+        print(f"⏰ Пропускам проверка в {current_hour}:00 - не е час за събитие")
         return False
     
-    events_by_hour = {}
+    print(f"🔍 Проверка за събития в {current_hour}:00...")
+    events = generate_yearly_schedule(now.year)
+    
+    # Намираме събитията за днес в този час
+    today_events = []
+    for event in events:
+        if event['datetime'].date() == now.date() and event['datetime'].hour == current_hour:
+            today_events.append(event)
+    
+    if not today_events:
+        print(f"📭 Няма събития в {current_hour}:00")
+        return False
+    
+    # Изпращаме нотификации за всяко събитие
+    notifications_sent = 0
     for event in today_events:
-        hour = event['datetime'].hour
-        if hour not in events_by_hour:
-            events_by_hour[hour] = []
-        events_by_hour[hour].append(event)
-    
-    current_hour = now.hour
-    if current_hour in events_by_hour:
-        notifications_sent = 0
-        for event in events_by_hour[current_hour]:
-            # Премахваме emoji от заглавието
-            title = event['title'].replace('🚨', '!')
-            message = f"{event['facility']} | {event['shift']}"
-            
-            event_id = int(f"{event['datetime'].timestamp()}"[-6:])
-            send_notification(title, message, event_id)
-            notifications_sent += 1
+        title = event['title'].replace('🚨', '').strip()
+        message = f"{event['facility']} | {event['shift']}\n{event['description']}"
         
-        print(f"✅ Изпратени {notifications_sent} нотификации")
-        return True
+        event_id = int(f"{event['datetime'].timestamp()}"[-6:])
+        send_notification(title, message, event_id)
+        notifications_sent += 1
     
-    return False
+    print(f"✅ Изпратени {notifications_sent} нотификации за {current_hour}:00")
+    return True
 
 class MyNotificationService(AndroidService):
     def on_start(self):
-        print("🚀 Service START")
+        print("🚀 Service START - оптимизиран режим")
         self.running = True
         self.last_date = None
-        self.last_hour = None
+        self.last_check_hour = None
         
         self.thread = threading.Thread(target=self.background_loop)
         self.thread.daemon = True
         self.thread.start()
     
     def background_loop(self):
-        print("🔄 Background loop START")
+        """Проверява само в 07:00, 15:00 и 23:00"""
+        print("🔄 Фонов режим - проверка само в 07:00, 15:00 и 23:00")
         
         while self.running:
             try:
                 now = datetime.now()
                 current_hour = now.hour
+                current_minute = now.minute
                 
-                if self.last_hour != current_hour:
-                    print(f"⏰ Check at {now.strftime('%H:%M')}")
-                    check_and_notify()
-                    self.last_hour = current_hour
+                # Проверяваме само в точните часове (в първата минута)
+                if current_minute < 2 and current_hour in [7, 15, 23]:
+                    if self.last_check_hour != current_hour:
+                        print(f"⏰ Часова проверка в {current_hour}:00")
+                        check_and_notify()
+                        self.last_check_hour = current_hour
+                else:
+                    # Нулираме часовника, за да може да проверява отново
+                    if current_hour not in [7, 15, 23]:
+                        self.last_check_hour = None
                 
+                # Проверка при смяна на деня
                 if self.last_date != now.date():
-                    print(f"📅 New day: {now.strftime('%d.%m.%Y')}")
+                    print(f"📅 Нова дата: {now.strftime('%d.%m.%Y')}")
                     self.last_date = now.date()
+                    self.last_check_hour = None  # Нулираме за новия ден
                 
+                # Спим 30 секунди, за да не натоварваме процесора
                 time.sleep(30)
                 
             except Exception as e:
-                print(f"❌ Error: {e}")
+                print(f"❌ Грешка в услугата: {e}")
                 time.sleep(60)
     
     def on_destroy(self):
@@ -142,5 +158,5 @@ class MyNotificationService(AndroidService):
         print("✅ Service STOPPED")
 
 if __name__ == "__main__":
-    print("Test...")
+    print("Тест...")
     check_and_notify()
