@@ -4,6 +4,7 @@ on: [push, workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-22.04
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -26,35 +27,6 @@ jobs:
 
       - name: Add user local bin to PATH
         run: echo "PATH=$HOME/.local/bin:$PATH" >> $GITHUB_ENV
-
-      - name: Create buildozer.spec
-        run: |
-          echo '[app]' > buildozer.spec
-          echo 'title = GrafikProverki' >> buildozer.spec
-          echo 'package.name = grafikapp' >> buildozer.spec
-          echo 'package.domain = org.twoman' >> buildozer.spec
-          echo 'source.dir = .' >> buildozer.spec
-          echo 'source.include_exts = py,png,jpg,kv,atlas' >> buildozer.spec
-          echo 'version = 1.0' >> buildozer.spec
-          echo 'requirements = python3==3.11.0, hostpython3==3.11.0, kivy==2.3.0, pillow==10.2.0, pyjnius, plyer' >> buildozer.spec
-          echo 'orientation = portrait' >> buildozer.spec
-          echo 'fullscreen = 1' >> buildozer.spec
-          echo 'android.archs = arm64-v8a' >> buildozer.spec
-          echo 'android.api = 33' >> buildozer.spec
-          echo 'android.minapi = 24' >> buildozer.spec
-          echo 'android.ndk = 25c' >> buildozer.spec
-          echo 'android.sdk = 33' >> buildozer.spec
-          echo 'android.permissions = POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK, RECEIVE_BOOT_COMPLETED, FOREGROUND_SERVICE' >> buildozer.spec
-          echo 'services = MyNotificationService:service.py' >> buildozer.spec
-          echo 'android.gradle_dependencies = androidx.core:core:1.9.0, androidx.appcompat:appcompat:1.6.1' >> buildozer.spec
-          echo 'android.add_src = yes' >> buildozer.spec
-          echo 'android.enable_androidx = True' >> buildozer.spec
-          echo 'android.meta_data = android.app.background_running=True' >> buildozer.spec
-          echo 'android.foreground_service = True' >> buildozer.spec
-          echo 'android.foreground_service_type = dataSync' >> buildozer.spec
-          echo '' >> buildozer.spec
-          echo '[buildozer]' >> buildozer.spec
-          echo 'log_level = 2' >> buildozer.spec
 
       - name: Build APK with Buildozer
         run: |
