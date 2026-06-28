@@ -17,9 +17,9 @@ android.ndk = 25c
 android.sdk = 33
 
 android.permissions = POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK, RECEIVE_BOOT_COMPLETED, FOREGROUND_SERVICE, SYSTEM_ALERT_WINDOW, USE_FULL_SCREEN_INTENT
-services = MyNotificationService:service/service.py
+services = MyNotificationService:service.py
 android.gradle_dependencies = androidx.core:core:1.9.0, androidx.appcompat:appcompat:1.6.1
-android.add_src = True
+android.add_src = False
 android.enable_androidx = True
 android.foreground_service = True
 android.foreground_service_type = dataSync
