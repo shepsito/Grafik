@@ -4,11 +4,23 @@ from datetime import datetime
 from service_logic import generate_yearly_schedule
 
 # ---------------------------------------------------------
-# FOREGROUND NOTIFICATION
+# SAFE GET SERVICE INSTANCE
 # ---------------------------------------------------------
-def start_foreground():
+def get_service():
     PythonService = autoclass('org.kivy.android.PythonService')
     service = PythonService.mService
+    return service
+
+
+# ---------------------------------------------------------
+# FOREGROUND NOTIFICATION (SAFE)
+# ---------------------------------------------------------
+def start_foreground():
+    service = get_service()
+    if service is None:
+        print("⚠ Service not ready yet")
+        return
+
     context = service.getApplicationContext()
 
     NotificationBuilder = autoclass('android.app.Notification$Builder')
@@ -35,19 +47,23 @@ def start_foreground():
 
     notification = builder.build()
     service.startForeground(1, notification)
+    print("🔥 Foreground service started")
 
 
 # ---------------------------------------------------------
-# SEND EVENT NOTIFICATION
+# SEND EVENT NOTIFICATION (SAFE)
 # ---------------------------------------------------------
 def send_notification(title, message):
+    service = get_service()
+    if service is None:
+        print("⚠ Service not ready yet")
+        return
+
     Context = autoclass('android.content.Context')
     NotificationManager = autoclass('android.app.NotificationManager')
     NotificationChannel = autoclass('android.app.NotificationChannel')
     NotificationBuilder = autoclass('android.app.Notification$Builder')
 
-    PythonService = autoclass('org.kivy.android.PythonService')
-    service = PythonService.mService
     context = service.getApplicationContext()
     nm = context.getSystemService(Context.NOTIFICATION_SERVICE)
 
@@ -69,17 +85,30 @@ def send_notification(title, message):
     builder.setAutoCancel(True)
 
     nm.notify(int(datetime.now().timestamp()), builder.build())
+    print("🔔 Notification sent:", title)
 
 
 # ---------------------------------------------------------
-# SERVICE START
+# WAIT UNTIL SERVICE IS READY
 # ---------------------------------------------------------
-start_foreground()
-last_check_hour = None
+print("⏳ Waiting for Android service to be ready...")
+for _ in range(20):  # максимум ~10 секунди
+    if get_service() is not None:
+        break
+    sleep(0.5)
+
+if get_service() is None:
+    print("❌ Service failed to initialize")
+else:
+    print("✅ Service ready")
+    start_foreground()
+
 
 # ---------------------------------------------------------
 # MAIN LOOP
 # ---------------------------------------------------------
+last_check_hour = None
+
 while True:
     try:
         now = datetime.now()
@@ -109,5 +138,5 @@ while True:
         sleep(30)
 
     except Exception as e:
-        print("Error:", e)
+        print("❌ Error:", e)
         sleep(60)
