@@ -13,10 +13,6 @@ from kivy.metrics import dp, sp
 
 from service_logic import generate_yearly_schedule
 
-# Android service import
-if platform == "android":
-    from jnius import autoclass
-
 # UI background
 Window.clearcolor = (0.05, 0.05, 0.08, 1)
 
@@ -290,17 +286,15 @@ class NotificationApp(App):
     def build(self):
         return MainWidget()
 
-    def on_start(self):
-        print("🚀 Приложението стартира")
 
-        # --- START ANDROID BACKGROUND SERVICE ---
-        if platform == "android":
-            try:
-                PythonService = autoclass('org.kivy.android.PythonService')
-                PythonService.start("MyNotificationService", "")
-                print("🔥 Услугата е стартирана успешно")
-            except Exception as e:
-                print(f"❌ Грешка при стартиране на услугата: {e}")
+# ---------------------------------------------------------
+# 🔥 СТАРТИРАНЕ НА ANDROID УСЛУГАТА ПРЕДИ App().run()
+# ---------------------------------------------------------
+if platform == "android":
+    from jnius import autoclass
+    PythonService = autoclass('org.kivy.android.PythonService')
+    PythonService.start("MyNotificationService")
+    print("🔥 Услугата е стартирана ПРЕДИ App().run()")
 
 
 if __name__ == "__main__":
