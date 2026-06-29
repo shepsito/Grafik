@@ -4,34 +4,29 @@ from time import sleep
 from datetime import datetime
 from jnius import autoclass
 
-# ---------------------------------------------------------
-# FIX: Ensure service_logic.py can be imported inside APK
-# ---------------------------------------------------------
 service_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(service_dir)
 
 try:
     from service_logic import generate_yearly_schedule
 except Exception as e:
-    print("❌ Cannot import service_logic:", e)
+    print("Cannot import service_logic:", e)
     generate_yearly_schedule = None
 
-
-# ---------------------------------------------------------
-# SAFE SERVICE ACCESS
-# ---------------------------------------------------------
 def get_service():
     PythonService = autoclass('org.kivy.android.PythonService')
     return PythonService.mService
 
-
-# ---------------------------------------------------------
-# FOREGROUND NOTIFICATION (SAFE)
-# ---------------------------------------------------------
 def start_foreground():
-    service = get_service()
+    # Изчакваме услугата да се инициализира
+    for _ in range(60):  # до 30 секунди
+        service = get_service()
+        if service is not None:
+            break
+        sleep(0.5)
+
     if service is None:
-        print("⚠ Service not ready yet")
+        print("Foreground service FAILED to start")
         return
 
     context = service.getApplicationContext()
@@ -60,16 +55,12 @@ def start_foreground():
 
     notification = builder.build()
     service.startForeground(1, notification)
-    print("🔥 Foreground service started")
+    print("Foreground service started")
 
-
-# ---------------------------------------------------------
-# SEND EVENT NOTIFICATION (SAFE)
-# ---------------------------------------------------------
 def send_notification(title, message):
     service = get_service()
     if service is None:
-        print("⚠ Service not ready yet")
+        print("Service not ready yet")
         return
 
     Context = autoclass('android.content.Context')
@@ -98,28 +89,11 @@ def send_notification(title, message):
     builder.setAutoCancel(True)
 
     nm.notify(int(datetime.now().timestamp()), builder.build())
-    print("🔔 Notification sent:", title)
+    print("Notification sent:", title)
 
+print("Waiting for Android service...")
+start_foreground()
 
-# ---------------------------------------------------------
-# WAIT FOR SERVICE INITIALIZATION
-# ---------------------------------------------------------
-print("⏳ Waiting for Android service to be ready...")
-for _ in range(20):  # ~10 seconds max
-    if get_service() is not None:
-        break
-    sleep(0.5)
-
-if get_service() is None:
-    print("❌ Service failed to initialize")
-else:
-    print("✅ Service ready")
-    start_foreground()
-
-
-# ---------------------------------------------------------
-# MAIN LOOP
-# ---------------------------------------------------------
 last_check_hour = None
 
 while True:
@@ -128,7 +102,6 @@ while True:
         hour = now.hour
         minute = now.minute
 
-        # Проверка само в 07:00, 15:00, 23:00
         if hour in [7, 15, 23] and minute < 2:
             if last_check_hour != hour and generate_yearly_schedule:
                 events = generate_yearly_schedule(now.year)
@@ -151,5 +124,5 @@ while True:
         sleep(30)
 
     except Exception as e:
-        print("❌ Error:", e)
+        print("Error:", e)
         sleep(60)
