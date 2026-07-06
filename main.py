@@ -3,6 +3,7 @@ from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
+from kivy.uix.scrollview import ScrollView
 from kivy.uix.widget import Widget
 from kivy.core.window import Window
 from kivy.graphics import Color, Rectangle
@@ -27,14 +28,28 @@ class MainWidget(BoxLayout):
         self.past_box.add_widget(self.past_content)
         self.add_widget(self.past_box)
 
-        # ------------------ ДНЕС ------------------
-        self.today_box = self._create_panel("ДНЕС", (0.12, 0.12, 0.20, 1))
-        self.today_content = self._create_content_label()
-        self.today_box.add_widget(self.today_content)
+        # ------------------ ДНЕС (тъмно зеленикав фон + SCROLL) ------------------
+        self.today_box = self._create_panel("ДНЕС", (0.08, 0.20, 0.12, 1))
+
+        self.today_scroll = ScrollView(size_hint_y=0.82)
+        self.today_content = Label(
+            text="Зареждане...",
+            color=(0.9, 0.9, 0.9, 1),
+            font_size=sp(17),
+            halign='left',
+            valign='top',
+            text_size=(Window.width - dp(60), None),
+            markup=True,
+            size_hint_y=None
+        )
+        self.today_content.bind(texture_size=lambda inst, val: setattr(inst, 'height', val[1]))
+
+        self.today_scroll.add_widget(self.today_content)
+        self.today_box.add_widget(self.today_scroll)
         self.add_widget(self.today_box)
 
-        # ------------------ СЛЕДВАЩО СЪБИТИЕ ------------------
-        self.next_box = self._create_panel(">> СЛЕДВАЩО СЪБИТИЕ", (0.08, 0.18, 0.12, 1))
+        # ------------------ СЛЕДВАЩО СЪБИТИЕ (тъмно синкав фон) ------------------
+        self.next_box = self._create_panel(">> СЛЕДВАЩО СЪБИТИЕ", (0.10, 0.14, 0.25, 1))
         self.next_content = self._create_content_label()
         self.next_box.add_widget(self.next_content)
         self.add_widget(self.next_box)
@@ -138,7 +153,7 @@ class MainWidget(BoxLayout):
         else:
             self.past_content.text = "[i]Няма минали събития[/i]"
 
-        # -------- ДНЕС (с описание) --------
+        # -------- ДНЕС (с описание + SCROLL) --------
         today_events = [e for e in self.yearly_events if e['datetime'].date() == today]
         if today_events:
             lines = []
