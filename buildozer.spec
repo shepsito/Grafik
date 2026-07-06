@@ -6,7 +6,7 @@ source.dir = .
 source.include_exts = py,png,jpg,kv,atlas
 version = 1.0
 
-requirements = python3==3.11.0, hostpython3==3.11.0, kivy==2.3.0, pyjnius, plyer
+requirements = python3==3.11.0, hostpython3==3.11.0, kivy==2.3.0
 
 orientation = portrait
 fullscreen = 1
@@ -16,13 +16,8 @@ android.minapi = 24
 android.ndk = 25c
 android.sdk = 33
 
-android.permissions = POST_NOTIFICATIONS, VIBRATE, WAKE_LOCK, RECEIVE_BOOT_COMPLETED, FOREGROUND_SERVICE, SYSTEM_ALERT_WINDOW, USE_FULL_SCREEN_INTENT
-services = MyNotificationService:service.py
-android.gradle_dependencies = androidx.core:core:1.9.0, androidx.appcompat:appcompat:1.6.1
-android.add_src = False
-android.enable_androidx = True
-android.foreground_service = True
-android.foreground_service_type = dataSync
+# САМО ОСНОВНИ РАЗРЕШЕНИЯ - БЕЗ УСЛУГИ
+android.permissions = 
 
 [buildozer]
 log_level = 2
