@@ -154,20 +154,22 @@ class MainWidget(BoxLayout):
             self.past_content.text = "[i]Няма минали събития[/i]"
 
         # -------- ДНЕС (с описание + SCROLL) --------
+                # -------- ДНЕС (с описание + SCROLL) --------
         today_events = [e for e in self.yearly_events if e['datetime'].date() == today]
-if today_events:
-    lines = []
-    for ev in today_events:
-        status = "ИЗПЪЛНЕНО" if ev['datetime'] < now else "ПРЕДСТОЯЩО"
-        lines.append(
-            f"[b]{ev['datetime'].strftime('%H:%M')}[/b]  {status}\n"
-            f"[b]{ev['title']}[/b]\n"   
-            f"Място: {ev['facility']} | {ev['shift']}\n"
-            f"[color=888888]{ev['description']}[/color]\n"
-        )
-    self.today_content.text = "\n".join(lines)
-else:
-    self.today_content.text = "[i]Няма събития за днес[/i]"
+        if today_events:
+            lines = []
+            for ev in today_events:
+                status = "ИЗПЪЛНЕНО" if ev['datetime'] < now else "ПРЕДСТОЯЩО"
+                lines.append(
+                    f"[b]{ev['datetime'].strftime('%H:%M')}[/b]  {status}\n"
+                    f"[b]{ev['title']}[/b]\n"
+                    f"Място: {ev['facility']} | {ev['shift']}\n"
+                    f"[color=888888]{ev['description']}[/color]\n"
+                )
+            self.today_content.text = "\n".join(lines)
+        else:
+            self.today_content.text = "[i]Няма събития за днес[/i]"
+
 
 
         # -------- СЛЕДВАЩО (без описание, НЕ взима днешни) --------
