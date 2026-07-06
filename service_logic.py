@@ -70,7 +70,7 @@ def generate_yearly_schedule(year):
                 'datetime': current.replace(hour=15, minute=0),
                 'title': ' Проверка АВР',
                 'facility': 'Аварийно осветление',
-                'description': 'Проверка АВР на захранването-НСЕО ОЕОиСКУ',
+                'description': 'Проверка АВР на захранването-[color=ff0000]НСЕО ОЕОиСКУ[/color]',
                 'shift': shift
             })
 
@@ -80,7 +80,7 @@ def generate_yearly_schedule(year):
                 'datetime': current.replace(hour=15, minute=0),
                 'title': ' ЕЕ ЦПС-1',
                 'facility': 'ЕЕ ЦПС-1',
-                'description': 'Проверка изправноста на аварийното осветление-НСЕО ОЕОиСКУ',
+                'description': 'Проверка изправноста на аварийното осветление-[color=ff0000]НСЕО ОЕОиСКУ[/color]',
                 'shift': shift
             })
 
@@ -90,7 +90,7 @@ def generate_yearly_schedule(year):
                 'datetime': current.replace(hour=7, minute=0),
                 'title': ' Ф.И. Проверка',
                 'facility': 'По процедура',
-                'description': 'Ф.И. на аварийното осветление-НСЕО ОЕОиСКУ',
+                'description': 'Ф.И. на аварийното осветление-[color=ff0000]НСЕО ОЕОиСКУ[/color]',
                 'shift': 'Смяна 2'
             })
 
@@ -100,7 +100,7 @@ def generate_yearly_schedule(year):
                 'datetime': current.replace(hour=15, minute=0),
                 'title': ' МЗ и ЕЕ ЦПС-1',
                 'facility': 'МЗ и ЕЕ ЦПС-1',
-                'description': 'Проверка изправността на евакуационното осветление-НСЕО ОЕОиСКУ',
+                'description': 'Проверка изправността на евакуационното осветление-[color=ff0000]НСЕО ОЕОиСКУ[/color]',
                 'shift': shift
             })
 
@@ -110,7 +110,7 @@ def generate_yearly_schedule(year):
                 'datetime': current.replace(hour=15, minute=0),
                 'title': ' Проверка АВР (Пон.)',
                 'facility': 'МЗ,ЦПС-1',
-                'description': 'Проверка АВР сборки на 0,4кВ захранвани от 3 и 4 БН-НСЕО ОЕОиСКУ',
+                'description': 'Проверка АВР сборки на 0,4кВ захранвани от 3 и 4 БН-[color=ff0000]НСЕО ОЕОиСКУ[/color]',
                 'shift': shift
             })
 
@@ -120,7 +120,7 @@ def generate_yearly_schedule(year):
                 'datetime': current.replace(hour=15, minute=0),
                 'title': ' Проверка АВР (Вт.)',
                 'facility': 'МЗ',
-                'description': 'Проверка АВР сборки на 0,4кВ захранвани от 23 и 24 БН-НСЕО ОЕОиСКУ',
+                'description': 'Проверка АВР сборки на 0,4кВ захранвани от 23 и 24 БН-[color=ff0000]НСЕО ОЕОиСКУ[/color]',
                 'shift': shift
             })
 
@@ -130,7 +130,7 @@ def generate_yearly_schedule(year):
                 'datetime': current.replace(hour=15, minute=0),
                 'title': ' Проверка АВР (Ср.)',
                 'facility': 'МЗ',
-                'description': 'Проверка АВР сборки на 0,4кВ съответната с-ма-I (II,III)-блок 3-НСЕО ОЕОиСКУ',
+                'description': 'Проверка АВР сборки на 0,4кВ съответната с-ма-I (II,III)-блок 3-[color=ff0000]НСЕО ОЕОиСКУ[/color]',
                 'shift': shift
             })
 
@@ -140,7 +140,7 @@ def generate_yearly_schedule(year):
                 'datetime': current.replace(hour=15, minute=0),
                 'title': ' Проверка АВР (Четв.)',
                 'facility': 'МЗ',
-                'description': 'Проверка АВР сборки на 0,4кВ съответната с-ма-I (II,III)-блок 4-НСЕО ОЕОиСКУ',
+                'description': 'Проверка АВР сборки на 0,4кВ съответната с-ма-I (II,III)-блок 4-[color=ff0000]НСЕО ОЕОиСКУ[/color]',
                 'shift': shift
             })
 
@@ -150,7 +150,7 @@ def generate_yearly_schedule(year):
                 'datetime': current.replace(hour=23, minute=0),
                 'title': ' Проверка АВР (Петък)',
                 'facility': 'МЗ,ХВО и ЦПС-1',
-                'description': 'Проверка АВР сборки на 0,4кВ с/без сборки захр.от 3,4,23,24БН,33БН I-III,43БН I-III /-НСЕО ОЕОиСКУ',
+                'description': 'Проверка АВР сборки на 0,4кВ с/без сборки захр.от 3,4,23,24БН,33БН I-III,43БН I-III /-[color=ff0000]НСЕО ОЕОиСКУ[/color]',
                 'shift': 'Смяна 1'
             })
 
@@ -170,7 +170,7 @@ def generate_yearly_schedule(year):
                 'datetime': current.replace(hour=15, minute=0),
                 'title': ' Вентилни отводи',
                 'facility': 'Вентилни отводи 1 и 3 ТП',
-                'description': 'Отчитане на -вентилни отводи-НСЕО ОЕОиСКУ',
+                'description': 'Отчитане на -вентилни отводи-[color=ff0000]НСЕО ОЕОиСКУ[/color]',
                 'shift': shift
             })
 
@@ -180,7 +180,7 @@ def generate_yearly_schedule(year):
                 'datetime': current.replace(hour=23, minute=0),
                 'title': ' Ел.двигатели 6кВ',
                 'facility': 'Ел.двигатели 6кВ',
-                'description': 'Измерване съпротивлението на isoлацията на ел.двиг.6кВ.-ПВТ в резерв,1и 2ППП-НСЕО ОЕОиСКУ',
+                'description': 'Измерване съпротивлението на isoлацията на ел.двиг.6кВ.-ПВТ в резерв,1и 2ППП-[color=ff0000]НСЕО ОЕОиСКУ[/color]',
                 'shift': 'Смяна 1'
             })
 
@@ -190,7 +190,7 @@ def generate_yearly_schedule(year):
                 'datetime': current.replace(hour=7, minute=0),
                 'title': ' Проверка ДГ-А',
                 'facility': 'ДГ-A',
-                'description': 'Ф.И. на автономен товар не по малко от 60мин.-НСЕО ОЕОиСКУ',
+                'description': 'Ф.И. на автономен товар не по малко от 60мин.-[color=ff0000]НСЕО ОЕОиСКУ[/color]',
                 'shift': 'Смяна 2'
             })
 
@@ -200,7 +200,7 @@ def generate_yearly_schedule(year):
                 'datetime': current.replace(hour=7, minute=0),
                 'title': ' Проверка ДГ-Б',
                 'facility': 'ДГ-Б',
-                'description': 'Ф.И. на автономен товар не по малко от 60мин.-НСЕО ОЕОиСКУ',
+                'description': 'Ф.И. на автономен товар не по малко от 60мин.-[color=ff0000]НСЕО ОЕОиСКУ[/color]',
                 'shift': 'Смяна 2'
             })
 
@@ -210,7 +210,7 @@ def generate_yearly_schedule(year):
                 'datetime': current.replace(hour=7, minute=0),
                 'title': ' Проверка 2АДГ-ДСАПП-4',
                 'facility': '2АДГ-ДСАПП-4',
-                'description': 'Ф.И на аварийното ел.захранване на СПИ-НСЕО Енергетик ПРАО',
+                'description': 'Ф.И на аварийното ел.захранване на СПИ-[color=ff0000]НСЕО Енергетик ПАРО[/color]',
                 'shift': 'Смяна 2'
             })
 
@@ -220,7 +220,7 @@ def generate_yearly_schedule(year):
                 'datetime': current.replace(hour=7, minute=0),
                 'title': ' Проверка ДГ-КАС',
                 'facility': 'ДГ-КАС',
-                'description': 'Ф.И на аварийното ел.захранване на СПИ-НСЕО Енергетик ПРАО',
+                'description': 'Ф.И на аварийното ел.захранване на СПИ-[color=ff0000]НСЕО Енергетик ПАРО[/color]',
                 'shift': 'Смяна 2'
             })
 
@@ -230,7 +230,7 @@ def generate_yearly_schedule(year):
                 'datetime': current.replace(hour=7, minute=0),
                 'title': ' Проверка ГРТ-ЦНРД',
                 'facility': 'ГРТ-ЦНРД',
-                'description': 'Изпробване на АВР на ел.захранването-ДИС НСЕО Енергетик ПРАО',
+                'description': 'Изпробване на АВР на ел.захранването-[color=ff0000]ДИС НСЕО Енергетик ПАРО[/color]',
                 'shift': 'Смяна 2'
             })
 
@@ -240,7 +240,7 @@ def generate_yearly_schedule(year):
                 'datetime': current.replace(hour=7, minute=0),
                 'title': ' Отчитане електромери',
                 'facility': 'По методика ДП.ЕД.МТ.1153',
-                'description': 'Отчитане електомерите за консумирана ел.енергия-НСЕО ОЕОиСКУ',
+                'description': 'Отчитане електомерите за консумирана ел.енергия-[color=ff0000]НСЕО ОЕОиСКУ[/color]',
                 'shift': 'Смяна 2'
             })
 
@@ -250,7 +250,7 @@ def generate_yearly_schedule(year):
                 'datetime': current.replace(hour=7, minute=0),
                 'title': ' Проверка ТП1, ТП3',
                 'facility': 'ТП1,ТП3',
-                'description': 'Изпробване на охлаждащите вентилатори на 1ТП и 3ТП чрез ръчно включване-НСЕО',
+                'description': 'Изпробване на охлаждащите вентилатори на 1ТП и 3ТП чрез ръчно включване-[color=ff0000]НСЕО[/color]',
                 'shift': 'Смяна 2'
             })
 
@@ -260,21 +260,21 @@ def generate_yearly_schedule(year):
                 'datetime': current.replace(hour=23, minute=0),
                 'title': ' Измерване стойности по фидери',
                 'facility': 'По методика ДП.ЕД.МТ.1153',
-                'description': 'Измерване стойностите по фидерите за АКС,СБК-2 и ТРЗ/Бюро пропуски-НСЕО ОЕОиСКУ',
+                'description': 'Измерване стойностите по фидерите за АКС,СБК-2 и ТРЗ/Бюро пропуски-[color=ff0000]НСЕО ОЕОиСКУ[/color]',
                 'shift': 'Смяна 1'
             })
             events.append({
                 'datetime': current.replace(hour=7, minute=0),
                 'title': ' Измерване стойности по фидери',
                 'facility': 'По методика ДП.ЕД.МТ.1153',
-                'description': 'Измерване стойностите по фидерите за АКС,СБК-2 и ТРЗ/Бюро пропуски-НСЕО ОЕОиСКУ',
+                'description': 'Измерване стойностите по фидерите за АКС,СБК-2 и ТРЗ/Бюро пропуски-[color=ff0000]НСЕО ОЕОиСКУ[/color]',
                 'shift': 'Смяна 2'
             })
             events.append({
                 'datetime': current.replace(hour=15, minute=0),
                 'title': ' Измерване стойности по фидери',
                 'facility': 'По методика ДП.ЕД.МТ.1153',
-                'description': 'Измерване стойностите по фидерите за АКС,СБК-2 и ТРЗ/Бюро пропуски-НСЕО ОЕОиСКУ',
+                'description': 'Измерване стойностите по фидерите за АКС,СБК-2 и ТРЗ/Бюро пропуски-[color=ff0000]НСЕО ОЕОиСКУ[/color]',
                 'shift': 'Смяна 3'
             })
 
