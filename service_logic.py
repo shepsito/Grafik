@@ -87,7 +87,7 @@ def generate_yearly_schedule(year):
         # 3. Ф.И. Проверка (месеци 3 и 10, седмица 1 или 2) - ОРИГИНАЛ
         if current_month in [3, 10] and monday_week in [1, 2]:
             events.append({
-                'datetime': current.replace(hour=07, minute=0),
+                'datetime': current.replace(hour=7, minute=0),
                 'title': '🚨 Ф.И. Проверка',
                 'facility': 'По процедура',
                 'description': 'Ф.И. на аварийното осветление-НСЕО ОЕОиСКУ',
