@@ -126,20 +126,19 @@ class MainWidget(BoxLayout):
         now = datetime.now()
         today = now.date()
 
-        # -------- МИНАЛО --------
+        # -------- МИНАЛО (без описание) --------
         past_events = [e for e in self.yearly_events if e['datetime'] < now]
         if past_events:
             last = past_events[-1]
             self.past_content.text = (
                 f"[b]{last['datetime'].strftime('%d.%m.%Y %H:%M')}[/b]\n"
                 f"{last['title']}\n"
-                f"Място: {last['facility']} | {last['shift']}\n"
-                f"[color=888888]{last['description']}[/color]"
+                f"Място: {last['facility']} | {last['shift']}"
             )
         else:
             self.past_content.text = "[i]Няма минали събития[/i]"
 
-        # -------- ДНЕС --------
+        # -------- ДНЕС (с описание) --------
         today_events = [e for e in self.yearly_events if e['datetime'].date() == today]
         if today_events:
             lines = []
@@ -148,24 +147,28 @@ class MainWidget(BoxLayout):
                 lines.append(
                     f"[b]{ev['datetime'].strftime('%H:%M')}[/b]  {status}\n"
                     f"Място: {ev['facility']} | {ev['shift']}\n"
+                    f"[color=888888]{ev['description']}[/color]\n"
                 )
             self.today_content.text = "\n".join(lines)
         else:
             self.today_content.text = "[i]Няма събития за днес[/i]"
 
-        # -------- СЛЕДВАЩО --------
-        future_events = [e for e in self.yearly_events if e['datetime'] > now]
+        # -------- СЛЕДВАЩО (без описание, НЕ взима днешни) --------
+        future_events = [
+            e for e in self.yearly_events
+            if e['datetime'] > now and e['datetime'].date() != today
+        ]
+
         if future_events:
             next_ev = future_events[0]
             time_left = next_ev['datetime'] - now
-            hours = int(time_left.total_seconds() / 3600)
-            minutes = int((time_left.total_seconds() % 3600) / 60)
+            hours = int(time_left.total_seconds() // 3600)
+            minutes = int((time_left.total_seconds() % 3600) // 60)
 
             self.next_content.text = (
                 f"[b]{next_ev['datetime'].strftime('%d.%m.%Y %H:%M')}[/b]\n"
                 f"{next_ev['title']}\n"
                 f"Място: {next_ev['facility']} | {next_ev['shift']}\n"
-                f"[color=888888]{next_ev['description']}[/color]\n"
                 f"[color=33cc33]След {hours}h {minutes}m[/color]"
             )
         else:
