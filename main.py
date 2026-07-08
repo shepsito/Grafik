@@ -1,10 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.button import Button
 from kivy.uix.scrollview import ScrollView
-from kivy.uix.widget import Widget
 from kivy.core.window import Window
 from kivy.graphics import Color, Rectangle
 from kivy.metrics import dp, sp
@@ -28,7 +27,7 @@ class MainWidget(BoxLayout):
         self.past_box.add_widget(self.past_content)
         self.add_widget(self.past_box)
 
-        # ------------------ ДНЕС (тъмно зеленикав фон + SCROLL) ------------------
+        # ------------------ ДНЕС ------------------
         self.today_box = self._create_panel("ДНЕС", (0.08, 0.20, 0.12, 1))
 
         self.today_scroll = ScrollView(size_hint_y=0.82)
@@ -48,7 +47,7 @@ class MainWidget(BoxLayout):
         self.today_box.add_widget(self.today_scroll)
         self.add_widget(self.today_box)
 
-        # ------------------ СЛЕДВАЩО СЪБИТИЕ (тъмно синкав фон) ------------------
+        # ------------------ СЛЕДВАЩО СЪБИТИЕ ------------------
         self.next_box = self._create_panel(">> СЛЕДВАЩО СЪБИТИЕ", (0.10, 0.14, 0.25, 1))
         self.next_content = self._create_content_label()
         self.next_box.add_widget(self.next_content)
@@ -141,7 +140,7 @@ class MainWidget(BoxLayout):
         now = datetime.now()
         today = now.date()
 
-        # -------- МИНАЛО (без описание) --------
+        # -------- МИНАЛО --------
         past_events = [e for e in self.yearly_events if e['datetime'] < now]
         if past_events:
             last = past_events[-1]
@@ -153,62 +152,34 @@ class MainWidget(BoxLayout):
         else:
             self.past_content.text = "[i]Няма минали събития[/i]"
 
-        # -------- ДНЕС (с описание + SCROLL) --------
-                # -------- ДНЕС (с описание + SCROLL) --------
-       # -------- ДНЕС (с описание + SCROLL) --------
-today_events = []
+        # -------- ДНЕС (логика за смени) --------
+        today_events = []
 
-for ev in self.yearly_events:
-    event_day = ev['datetime'].date()
+        for ev in self.yearly_events:
+            event_day = ev['datetime'].date()
 
-    # -----------------------------
-    # СМЯНА 1 (00:00–07:00)
-    # Вижда събитието от 07:00 предния ден до 07:00 на самия ден
-    # -----------------------------
-    if ev['shift'] == "Смяна 1":
-        # Утрешно събитие → показва се след 07:00 на предния ден
-        if event_day == today + timedelta(days=1) and now.hour >= 7:
-            today_events.append(ev)
-            continue
+            # Смяна 1 → вижда събитието от 07:00 предния ден до 07:00 на деня
+            if ev['shift'] == "Смяна 1":
+                if event_day == today + timedelta(days=1) and now.hour >= 7:
+                    today_events.append(ev)
+                    continue
+                if event_day == today and now.hour < 7:
+                    today_events.append(ev)
+                    continue
 
-        # Днешно събитие → показва се до 07:00
-        if event_day == today and now.hour < 7:
-            today_events.append(ev)
-            continue
+            # Смяна 2 → вижда събитието от 00:00 до 15:00
+            if ev['shift'] == "Смяна 2":
+                if event_day == today and now.hour < 15:
+                    today_events.append(ev)
+                    continue
 
-    # -----------------------------
-    # СМЯНА 2 (07:00–15:00)
-    # Вижда събитието от 00:00 до 15:00
-    # -----------------------------
-    if ev['shift'] == "Смяна 2":
-        if event_day == today and now.hour < 15:
-            today_events.append(ev)
-            continue
+            # Смяна 3 → вижда събитието от 00:00 до 23:00
+            if ev['shift'] == "Смяна 3":
+                if event_day == today and now.hour < 23:
+                    today_events.append(ev)
+                    continue
 
-    # -----------------------------
-    # СМЯНА 3 (15:00–23:00)
-    # Вижда събитието от 00:00 до 23:00
-    # -----------------------------
-    if ev['shift'] == "Смяна 3":
-        if event_day == today and now.hour < 23:
-            today_events.append(ev)
-            continue
-
-# След като today_events е попълнен от логиката за смени:
-if today_events:
-    lines = []
-    for ev in today_events:
-        status = "ИЗПЪЛНЕНО" if ev['datetime'] < now else "ПРЕДСТОЯЩО"
-        lines.append(
-            f"[b]{ev['datetime'].strftime('%H:%M')}[/b]  {status}\n"
-            f"[b]{ev['title']}[/b]\n"
-            f"Място: {ev['facility']} | {ev['shift']}\n"
-            f"[color=888888]{ev['description']}[/color]\n"
-        )
-    self.today_content.text = "\n".join(lines)
-else:
-    self.today_content.text = "[i]Няма събития за днес[/i]"
-
+        # Рендериране на ДНЕС
         if today_events:
             lines = []
             for ev in today_events:
@@ -223,9 +194,7 @@ else:
         else:
             self.today_content.text = "[i]Няма събития за днес[/i]"
 
-
-
-        # -------- СЛЕДВАЩО (без описание, НЕ взима днешни) --------
+        # -------- СЛЕДВАЩО --------
         future_events = [
             e for e in self.yearly_events
             if e['datetime'] > now and e['datetime'].date() != today
