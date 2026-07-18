@@ -49,9 +49,24 @@ class MainWidget(BoxLayout):
 
         # ------------------ СЛЕДВАЩО СЪБИТИЕ ------------------
         self.next_box = self._create_panel(">> СЛЕДВАЩО СЪБИТИЕ", (0.10, 0.14, 0.25, 1))
-        self.next_content = self._create_content_label()
-        self.next_box.add_widget(self.next_content)
+
+        self.next_scroll = ScrollView(size_hint_y=0.82)
+        self.next_content = Label(
+            text="Зареждане...",
+            color=(0.9, 0.9, 0.9, 1),
+            font_size=sp(17),
+            halign='left',
+            valign='top',
+            text_size=(Window.width - dp(60), None),
+            markup=True,
+            size_hint_y=None
+        )
+        self.next_content.bind(texture_size=lambda inst, val: setattr(inst, 'height', val[1]))
+
+        self.next_scroll.add_widget(self.next_content)
+        self.next_box.add_widget(self.next_scroll)
         self.add_widget(self.next_box)
+
 
         # ------------------ ДОЛЕН ПАНЕЛ ------------------
         bottom_box = BoxLayout(orientation='vertical', size_hint_y=0.08)
