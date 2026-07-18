@@ -209,26 +209,37 @@ class MainWidget(BoxLayout):
         else:
             self.today_content.text = "[i]Няма събития за днес[/i]"
 
-        # -------- СЛЕДВАЩО --------
+        # -------- СЛЕДВАЩО (вече със SCROLL и всички събития) --------
         future_events = [
             e for e in self.yearly_events
-            if e['datetime'] > now and e['datetime'].date() != today
+            if e['datetime'] > now
         ]
 
         if future_events:
-            next_ev = future_events[0]
-            time_left = next_ev['datetime'] - now
-            hours = int(time_left.total_seconds() // 3600)
-            minutes = int((time_left.total_seconds() % 3600) // 60)
+            # намираме датата на следващото събитие
+            next_day = future_events[0]['datetime'].date()
 
-            self.next_content.text = (
-                f"[b]{next_ev['datetime'].strftime('%d.%m.%Y %H:%M')}[/b]\n"
-                f"{next_ev['title']}\n"
-                f"Място: {next_ev['facility']} | {next_ev['shift']}\n"
-                f"[color=33cc33]След {hours}h {minutes}m[/color]"
-            )
+            # взимаме всички събития за този ден
+            next_day_events = [e for e in future_events if e['datetime'].date() == next_day]
+
+            lines = []
+            for ev in next_day_events:
+                time_left = ev['datetime'] - now
+                hours = int(time_left.total_seconds() // 3600)
+                minutes = int((time_left.total_seconds() % 3600) // 60)
+
+                lines.append(
+                    f"[b]{ev['datetime'].strftime('%d.%m.%Y %H:%M')}[/b]\n"
+                    f"{ev['title']}\n"
+                    f"Място: {ev['facility']} | {ev['shift']}\n"
+                    f"[color=33cc33]След {hours}h {minutes}m[/color]\n"
+                )
+
+            self.next_content.text = "\n".join(lines)
+
         else:
             self.next_content.text = "[i]Няма предстоящи събития[/i]"
+
 
 
 class NotificationApp(App):
