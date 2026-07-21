@@ -97,16 +97,6 @@ class MainWidget(BoxLayout):
     # ---------------------------------------------------------
     # ПОМОЩНИ ФУНКЦИИ
     # ---------------------------------------------------------
-
-    def get_current_shift(self, now):
-        h = now.hour
-        if h >= 23 or h < 7:
-            return "Смяна 1"
-        elif 7 <= h < 15:
-            return "Смяна 2"
-        else:
-            return "Смяна 3"
-
     def _create_panel(self, title, bg_color):
         box = BoxLayout(
             orientation='vertical',
@@ -182,22 +172,24 @@ class MainWidget(BoxLayout):
         for ev in self.yearly_events:
             event_day = ev['datetime'].date()
 
-            # Смяна 1 → 23:00 вчера → 07:00 днес
+            # Смяна 1 → събитие от 23:00 вчера до 07:00 днес
             if ev['shift'] == "Смяна 1":
+                # между 00:00 и 07:00 → събитието е от вчера
                 if now.hour < 7 and event_day == today - timedelta(days=1):
                     today_events.append(ev)
                     continue
+                # между 23:00 и 24:00 → събитието е от днес
                 if now.hour >= 23 and event_day == today:
                     today_events.append(ev)
                     continue
 
-            # Смяна 2 → 07:00 → 15:00
+            # Смяна 2 → 07:00–15:00
             if ev['shift'] == "Смяна 2":
                 if event_day == today and 7 <= now.hour < 15:
                     today_events.append(ev)
                     continue
 
-            # Смяна 3 → 15:00 → 23:00
+            # Смяна 3 → 15:00–23:00
             if ev['shift'] == "Смяна 3":
                 if event_day == today and 15 <= now.hour < 23:
                     today_events.append(ev)
@@ -208,7 +200,7 @@ class MainWidget(BoxLayout):
             lines = []
             for ev in today_events:
                 start = ev['datetime']
-                end = start + timedelta(hours=8)
+                end = start + timedelta(hours=8)  # смяната е 8 часа
 
                 if now < start:
                     status = "ПРЕДСТОЯЩО"
@@ -254,7 +246,6 @@ class MainWidget(BoxLayout):
                 )
 
             self.next_content.text = "\n".join(lines)
-
         else:
             self.next_content.text = "[i]Няма предстоящи събития[/i]"
 
