@@ -67,7 +67,6 @@ class MainWidget(BoxLayout):
         self.next_box.add_widget(self.next_scroll)
         self.add_widget(self.next_box)
 
-
         # ------------------ ДОЛЕН ПАНЕЛ ------------------
         bottom_box = BoxLayout(orientation='vertical', size_hint_y=0.08)
         self.info_label = Label(
@@ -96,8 +95,18 @@ class MainWidget(BoxLayout):
         Clock.schedule_interval(self.update_display, 3600)
 
     # ---------------------------------------------------------
-    # ПАНЕЛИ
+    # ПОМОЩНИ ФУНКЦИИ
     # ---------------------------------------------------------
+
+    def get_current_shift(self, now):
+        h = now.hour
+        if h >= 23 or h < 7:
+            return "Смяна 1"
+        elif 7 <= h < 15:
+            return "Смяна 2"
+        else:
+            return "Смяна 3"
+
     def _create_panel(self, title, bg_color):
         box = BoxLayout(
             orientation='vertical',
@@ -209,17 +218,17 @@ class MainWidget(BoxLayout):
         else:
             self.today_content.text = "[i]Няма събития за днес[/i]"
 
-        # -------- СЛЕДВАЩО (вече със SCROLL и всички събития) --------
+        # -------- СЛЕДВАЩО (без дублиране със „ДНЕС“) --------
+        current_shift = self.get_current_shift(now)
+
         future_events = [
             e for e in self.yearly_events
             if e['datetime'] > now
+            and not (e['shift'] == current_shift and e['datetime'].date() == today)
         ]
 
         if future_events:
-            # намираме датата на следващото събитие
             next_day = future_events[0]['datetime'].date()
-
-            # взимаме всички събития за този ден
             next_day_events = [e for e in future_events if e['datetime'].date() == next_day]
 
             lines = []
@@ -239,7 +248,6 @@ class MainWidget(BoxLayout):
 
         else:
             self.next_content.text = "[i]Няма предстоящи събития[/i]"
-
 
 
 class NotificationApp(App):
