@@ -13,6 +13,176 @@ from service_logic import generate_yearly_schedule
 
 Window.clearcolor = (0.05, 0.05, 0.08, 1)
 
+class MainWidget(BoxLayout):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.orientation='vertical'
+        self.padding=[dp(15),dp(10),dp(15),dp(10)]
+        self.spacing=dp(10)
+
+        self.past_box=self._create_panel("<< МИНАЛО СЪБИТИЕ",(0.15,0.12,0.18,1))
+        self.past_content=self._create_content_label()
+        self.past_box.add_widget(self.past_content)
+        self.add_widget(self.past_box)
+
+        self.today_box=self._create_panel("ДНЕС",(0.08,0.20,0.12,1))
+        self.today_scroll=ScrollView(size_hint_y=0.82)
+        self.today_content=Label(text="Зареждане...",color=(0.9,0.9,0.9,1),
+                                 font_size=sp(17),halign='left',valign='top',
+                                 text_size=(Window.width-dp(60),None),markup=True,size_hint_y=None)
+        self.today_content.bind(texture_size=lambda i,v:setattr(i,'height',v[1]))
+        self.today_scroll.add_widget(self.today_content)
+        self.today_box.add_widget(self.today_scroll)
+        self.add_widget(self.today_box)
+
+        self.next_box=self._create_panel(">> СЛЕДВАЩО СЪБИТИЕ",(0.10,0.14,0.25,1))
+        self.next_scroll=ScrollView(size_hint_y=0.82)
+        self.next_content=Label(text="Зареждане...",color=(0.9,0.9,0.9,1),
+                                font_size=sp(17),halign='left',valign='top',
+                                text_size=(Window.width-dp(60),None),markup=True,size_hint_y=None)
+        self.next_content.bind(texture_size=lambda i,v:setattr(i,'height',v[1]))
+        self.next_scroll.add_widget(self.next_content)
+        self.next_box.add_widget(self.next_scroll)
+        self.add_widget(self.next_box)
+
+        bottom=BoxLayout(orientation='vertical',size_hint_y=0.08)
+        self.info_label=Label(text=f"[color=888888]Актуализирано: {datetime.now().strftime('%H:%M')}[/color]",
+                              markup=True,font_size=sp(12))
+        bottom.add_widget(self.info_label)
+
+        btn=Button(text="ОБНОВИ",background_color=(0.2,0.5,0.8,1),
+                   font_size=sp(16),bold=True,size_hint_y=0.6)
+        btn.bind(on_press=self.refresh_data)
+        bottom.add_widget(btn)
+        self.add_widget(bottom)
+
+        self.yearly_events=[]
+        self.load_events()
+        Clock.schedule_interval(self.update_display,3600)
+
+    def _create_panel(self,title,bg):
+        box=BoxLayout(orientation='vertical',padding=[dp(15),dp(10),dp(15),dp(10)],
+                      spacing=dp(3),size_hint_y=0.25)
+        with box.canvas.before:
+            Color(*bg)
+            rect=Rectangle()
+        box.bind(size=lambda i,v:self._update_rect(rect,i),
+                 pos=lambda i,v:self._update_rect(rect,i))
+        label=Label(text=f"[b]{title}[/b]",font_size=sp(16),
+                    color=(0.9,0.9,0.9,1),size_hint_y=0.18,halign='left',markup=True)
+        box.add_widget(label)
+        return box
+
+    def _create_content_label(self):
+        return Label(text="Зареждане...",color=(0.9,0.9,0.9,1),
+                     font_size=sp(17),halign='left',
+                     text_size=(Window.width-dp(60),None),markup=True)
+
+    def _update_rect(self,rect,inst):
+        rect.pos=inst.pos
+        rect.size=inst.size
+
+    def load_events(self):
+        try:
+            self.yearly_events=generate_yearly_schedule(datetime.now().year)
+            self.update_display()
+            self.info_label.text=f"[color=33cc33]Заредени {len(self.yearly_events)} събития[/color]"
+        except Exception as e:
+            self.info_label.text=f"[color=ff3333]Грешка: {e}[/color]"
+
+    def refresh_data(self,*args):
+        self.load_events()
+        self.info_label.text=f"[color=ffcc00]Обновено в {datetime.now().strftime('%H:%M')}[/color]"
+
+    def update_display(self,*args):
+        now=datetime.now()
+        today=now.date()
+
+        past=[e for e in self.yearly_events if e['datetime']<now]
+        if past:
+            last=past[-1]
+            self.past_content.text=f"[b]{last['datetime'].strftime('%d.%m.%Y %H:%M')}[/b]\n{last['title']}\nМясто: {last['facility']} | {last['shift']}"
+        else:
+            self.past_content.text="[i]Няма минали събития[/i]"
+
+        today_events=[]
+        for ev in self.yearly_events:
+            d=ev['datetime'].date()
+
+            if d==today:
+                today_events.append(ev)
+                continue
+
+            if ev['shift']=="Смяна 1" and d==today-timedelta(days=1) and now.hour<7:
+                today_events.append(ev)
+                continue
+
+        if today_events:
+            lines=[]
+            for ev in today_events:
+                start=ev['datetime']
+                end=start+timedelta(hours=8)
+                if now<start:
+                    status="ПРЕДСТОЯЩО"
+                elif start<=now<=end:
+                    status="ТЕЧЕ"
+                else:
+                    status="ИЗПЪЛНЕНО"
+
+                lines.append(
+                    f"[b]{ev['datetime'].strftime('%H:%M')}[/b]  {status}\n"
+                    f"[b]{ev['title']}[/b]\n"
+                    f"Място: {ev['facility']} | {ev['shift']}\n"
+                    f"[color=888888]{ev['description']}[/color]\n"
+                )
+            self.today_content.text="\n".join(lines)
+        else:
+            self.today_content.text="[i]Няма събития за днес[/i]"
+
+        today_ids={id(ev) for ev in today_events}
+
+        future=[e for e in self.yearly_events if e['datetime']>now and id(e) not in today_ids]
+
+        if future:
+            next_day=future[0]['datetime'].date()
+            next_events=[e for e in future if e['datetime'].date()==next_day]
+
+            lines=[]
+            for ev in next_events:
+                diff=ev['datetime']-now
+                h=int(diff.total_seconds()//3600)
+                m=int((diff.total_seconds()%3600)//60)
+                lines.append(
+                    f"[b]{ev['datetime'].strftime('%d.%m.%Y %H:%M')}[/b]\n"
+                    f"{ev['title']}\n"
+                    f"Място: {ev['facility']} | {ev['shift']}\n"
+                    f"[color=33cc33]След {h}h {m}m[/color]\n"
+                )
+            self.next_content.text="\n".join(lines)
+        else:
+            self.next_content.text="[i]Няма предстоящи събития[/i]"
+
+class NotificationApp(App):
+    def build(self):
+        return MainWidget()
+
+if __name__=="__main__":
+    NotificationApp().run()
+from datetime import datetime, timedelta
+from kivy.app import App
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.label import Label
+from kivy.uix.button import Button
+from kivy.uix.scrollview import ScrollView
+from kivy.core.window import Window
+from kivy.graphics import Color, Rectangle
+from kivy.metrics import dp, sp
+from kivy.clock import Clock
+
+from service_logic import generate_yearly_schedule
+
+Window.clearcolor = (0.05, 0.05, 0.08, 1)
+
 
 class MainWidget(BoxLayout):
     def __init__(self, **kwargs):
